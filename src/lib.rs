@@ -23,14 +23,14 @@ pub enum RuntimeError {
 }
 
 pub struct Function {
-    pub name: String,
+    pub name: &'static str,
     pub number: u64,
     pub arg_types: Vec<TypeId>,
     pub return_type: TypeId,
 }
 
 pub struct Type {
-    pub name: String,
+    pub name: &'static str,
     pub type_id: TypeId,
 }
 
@@ -43,8 +43,8 @@ pub struct FreightDeclaration {
 pub struct FreightProxy {
     pub freight: Box<dyn Freight>,
     pub lib: std::rc::Rc<libloading::Library>,
-    pub name: String,
-    pub version: String,
+    pub name: &'static str,
+    pub version: &'static str,
 }
 
 pub trait Freight {
@@ -54,9 +54,9 @@ pub trait Freight {
         args: Vec<&mut Box<dyn Any>>
         ) -> Result<Box<dyn Any>, RuntimeError>;
 
-    fn get_function_list(self: &mut Self) -> Vec<Function>;
+    fn get_function_list (self: &mut Self) -> Vec<Function>;
 
-    fn get_type_list(self: &mut Self) -> Vec<Type>;
+    fn get_type_list (self: &mut Self) -> Vec<Type>;
 }
 
 struct EmptyFreight;
@@ -72,20 +72,20 @@ impl Freight for EmptyFreight {
         })
     }
 
-    fn get_function_list(self: &mut Self) -> Vec<Function> {
+    fn get_function_list (self: &mut Self) -> Vec<Function> {
         Vec::new()
     }
 
-    fn get_type_list(self: &mut Self) -> Vec<Type> {
+    fn get_type_list (self: &mut Self) -> Vec<Type> {
         Vec::new()
     }
 }
 
 pub trait FreightRegistrar {
-    fn register_freight(
+    fn register_freight (
         self: &mut Self,
-        name: &str,
-        version: &str,
+        name: &'static str,
+        version: &'static str,
         freight: Box<dyn Freight>,
         );
 }
@@ -113,8 +113,8 @@ impl FreightProxy {
         let mut result = FreightProxy {
             freight: Box::new(EmptyFreight{}),
             lib: lib,
-            name: "".to_string(),
-            version: "".to_string(),
+            name: "",
+            version: "",
         };
 
         (declaration.register)(&mut result);
@@ -132,24 +132,24 @@ impl Freight for FreightProxy {
         self.freight.call_function(function_number, args)
     }
 
-    fn get_function_list(self: &mut Self) -> Vec<Function> {
+    fn get_function_list (self: &mut Self) -> Vec<Function> {
         self.freight.get_function_list()
     }
 
-    fn get_type_list(self: &mut Self) -> Vec<Type> {
+    fn get_type_list (self: &mut Self) -> Vec<Type> {
         self.freight.get_type_list()
     }
 }
 
 impl FreightRegistrar for FreightProxy {
-    fn register_freight(
+    fn register_freight (
         self: &mut Self,
-        name: &str,
-        version: &str,
+        name: &'static str,
+        version: &'static str,
         freight: Box<dyn Freight>,
         ) {
         self.freight = freight;
-        self.name = name.to_string();
-        self.version = version.to_string();
+        self.name = name.clone();
+        self.version = version.clone();
     }
 }
