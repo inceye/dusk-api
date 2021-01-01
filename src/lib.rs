@@ -17,8 +17,9 @@ macro_rules! export_freight {
     };
 }
 
+#[derive(Debug)]
 pub enum RuntimeError {
-    Message { msg: String },
+    Message { msg: &'static str },
 }
 
 pub struct Function {
@@ -40,10 +41,10 @@ pub struct FreightDeclaration {
 }
 
 pub struct FreightProxy {
-    freight: Box<dyn Freight>,
-    lib: std::rc::Rc<libloading::Library>,
-    name: String,
-    version: String,
+    pub freight: Box<dyn Freight>,
+    pub lib: std::rc::Rc<libloading::Library>,
+    pub name: String,
+    pub version: String,
 }
 
 pub trait Freight {
@@ -58,6 +59,28 @@ pub trait Freight {
     fn get_type_list(self: &mut Self) -> Vec<Type>;
 }
 
+struct EmptyFreight;
+impl Freight for EmptyFreight {
+    fn call_function (
+        self: &mut Self,
+        _function_number: u64,
+        _args: Vec<&mut Box<dyn Any>>
+        ) -> Result<Box<dyn Any>, RuntimeError> {
+
+        Err(RuntimeError::Message{
+            msg: "You can't call an empty trait"
+        })
+    }
+
+    fn get_function_list(self: &mut Self) -> Vec<Function> {
+        Vec::new()
+    }
+
+    fn get_type_list(self: &mut Self) -> Vec<Type> {
+        Vec::new()
+    }
+}
+
 pub trait FreightRegistrar {
     fn register_freight(
         self: &mut Self,
@@ -68,13 +91,13 @@ pub trait FreightRegistrar {
 }
 
 impl FreightProxy {
-    pub unsafe fn load (self: &mut Self, lib_path: &str)
-        -> std::io::Result<()> {
+    pub unsafe fn load (lib_path: &str)
+        -> Result<FreightProxy, RuntimeError> {
 
-        self.lib = std::rc::Rc::new(
+        let lib = std::rc::Rc::new(
             libloading::Library::new(lib_path).unwrap());
 
-        let declaration: FreightDeclaration = self.lib
+        let declaration: FreightDeclaration = lib
             .get::<*mut FreightDeclaration>(b"freight_declaration\0")
             .unwrap()
             .read();
@@ -82,15 +105,21 @@ impl FreightProxy {
         if declaration.rustc_version != RUSTC_VERSION
             || declaration.api_version != API_VERSION
         {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Version mismatch",
-            ));
+            return Err(RuntimeError::Message{
+                msg: "Version mismatch"
+            });
         }
 
-        (declaration.register)(self);
+        let mut result = FreightProxy {
+            freight: Box::new(EmptyFreight{}),
+            lib: lib,
+            name: "".to_string(),
+            version: "".to_string(),
+        };
 
-        Ok(())
+        (declaration.register)(&mut result);
+
+        Ok(result)
     }
 }
 
