@@ -4,7 +4,7 @@ pub static API_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 #[macro_export]
-macro_rules! export_plugin {
+macro_rules! export_freight {
     ($register:expr) => {
         #[doc(hidden)]
         #[no_mangle]
@@ -21,24 +21,22 @@ pub enum RuntimeError {
     Message { msg: String },
 }
 
-#[allow(dead_code)]
 pub struct Function {
-    name: String,
-    number: u64,
-    arg_types: Vec<TypeId>,
-    return_type: TypeId,
+    pub name: String,
+    pub number: u64,
+    pub arg_types: Vec<TypeId>,
+    pub return_type: TypeId,
 }
 
-#[allow(dead_code)]
 pub struct Type {
-    name: String,
-    type_id: TypeId,
+    pub name: String,
+    pub type_id: TypeId,
 }
 
 pub struct FreightDeclaration {
     pub rustc_version: &'static str,
     pub api_version: &'static str,
-    pub register: unsafe extern "C" fn(&mut dyn FreightRegistrar),
+    pub register: unsafe extern "C" fn (&mut dyn FreightRegistrar),
 }
 
 pub struct FreightProxy {
