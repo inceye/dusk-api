@@ -1,6 +1,6 @@
 [package]
 name = "dusk-api"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Andy Gozas <andy@gozas.me>"]
 edition = "2018"
 
@@ -10,4 +10,4 @@ edition = "2018"
 rustc_version = "0.3.0"
 
 [dependencies]
-libloading = "*"
+libloading = "0.6"
