@@ -1,12 +1,12 @@
-/// Crate, that is used while building a plugin system as a common
-/// dependency by both plugin and plugin user to define the plugin
-/// behavior and safely import and use the plugin
-///
-/// To learn how to create a plugin and export functions from it see
-/// [`export_freight!`] macro documentation
-///
-/// To learn how to import and use plugins see [`FreightProxy`]
-/// documentation
+//! Crate, that is used while building a plugin system as a common
+//! dependency by both plugin and plugin user to define the plugin
+//! behavior and safely import and use the plugin
+//!
+//! To quickly learn how to create a plugin and export functions from it see
+//! [`export_freight!`] macro documentation
+//!
+//! To quickly learn how to import and use plugins see [`FreightProxy`]
+//! documentation
 
 use std::any::{Any, TypeId};
 
@@ -308,6 +308,9 @@ pub struct FreightDeclaration {
 /// [`FreightProxy::load`] function that is used to build the
 /// [`FreightProxy`] from a library path
 ///
+/// To learn more about the functions you may call on the
+/// [`FreightProxy`], see [`Freight`] trait documentation
+///
 /// # Example
 ///
 /// ```
@@ -337,7 +340,7 @@ pub struct FreightProxy {
 }
 
 /// Structure representing an empty [`Freight`] implementor, needed
-/// for only for [`FreightProxy`] configuration
+/// only for [`FreightProxy`] configuration
 pub struct EmptyFreight;
 impl Freight for EmptyFreight {
     fn call_function (
@@ -369,14 +372,20 @@ impl FreightProxy {
     pub unsafe fn load (lib_path: &str)
         -> Result<FreightProxy, RuntimeError> {
 
+        // Import the library
+        // *FIXME* Get rid of unwrap
         let lib = std::rc::Rc::new(
             libloading::Library::new(lib_path).unwrap());
 
+        // Get the plugin declaration structure from this lib
+        // *FIXME* Get rid of unwrap
         let declaration: FreightDeclaration = lib
             .get::<*mut FreightDeclaration>(b"freight_declaration\0")
             .unwrap()
             .read();
 
+        // Check if the compiler and api versions match
+        // If not -- immediately return an error
         if declaration.rustc_version != RUSTC_VERSION
             || declaration.api_version != API_VERSION
         {
@@ -385,22 +394,32 @@ impl FreightProxy {
             });
         }
 
-        let mut result = FreightProxy {
+        // Make a new FreightProxy with all values that are
+        // already available
+        let mut result: FreightProxy = FreightProxy {
             freight: Box::new(EmptyFreight{}),
             lib: lib,
             name: declaration.name,
             version: declaration.freight_version,
         };
 
+        // Call the function, imported in the plugin declaration
+        // and pass the FreightProxy to it as an argument
+        // so it sets the internal freight variable to a
+        // correct value
         (declaration.register)(&mut result);
 
+        // Return the result
         Ok(result)
     }
 }
 
-/// Implementation of trait [`Freight`] for the proxy structure, so we
-/// can call exact same functions from it
+// Implementation of trait Freight for the proxy structure, so we
+// can call exact same functions from it
 impl Freight for FreightProxy {
+
+    // Proxy function, that takes everything needed to call a function
+    // and passes it on to the freight inside
     fn call_function (
         self: &mut Self,
         function_number: u64,
@@ -409,19 +428,27 @@ impl Freight for FreightProxy {
         self.freight.call_function(function_number, args)
     }
 
+    // Proxy function, that calls the function that gets function
+    // list from the inside freight and returns the result
     fn get_function_list (self: &mut Self) -> Vec<Function> {
         self.freight.get_function_list()
     }
 
+    // Proxy function, that calls the function that gets type
+    // list from the inside freight and returns the result
     fn get_type_list (self: &mut Self) -> Vec<Type> {
         self.freight.get_type_list()
     }
 }
 
-/// Implementation of [`FreightRegistrar`] trait for the proxy
-/// structure, so that we can call register function on it without
-/// any third party structure
+// Implementation of FreightRegistrar trait for the proxy
+// structure, so that we can call register function on it without
+// any third party structure
 impl FreightRegistrar for FreightProxy {
+
+    // The function that simply takes a freight implementor
+    // as an argument and passes it into the inside freight
+    // variable
     fn register_freight (
         self: &mut Self,
         freight: Box<dyn Freight>,
