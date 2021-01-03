@@ -2,8 +2,12 @@
 //! dependency by both plugin and plugin user to define the plugin
 //! behavior and safely import and use the plugin
 //!
+//! # Plugin Side
+//!
 //! To quickly learn how to create a plugin and export functions from it see
 //! [`export_freight!`] macro documentation
+//!
+//! # Importer Side
 //!
 //! To quickly learn how to import and use plugins see [`FreightProxy`]
 //! documentation
@@ -43,13 +47,39 @@ pub static API_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// ```
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
+/// A macro, which can be used to make exporting of a struct
+/// easier
+///
+/// # Example
+///
+/// ```
+/// dusk_api::export_plugin!("test", "0.1.0", MyFreight);
+///
+/// pub struct MyFreight;
+///
+/// impl Freight for MyFreight {
+///     // Your implementation here
+/// }
+/// ```
+#[macro_export]
+macro_rules! export_plugin {
+    ($name: expr, $version: expr, $freight: expr) => {
+        $crate::register_freight!($freight, freight_registry_function);
+        $crate::export_freight!($name, $version, freight_registry_function);
+    };
+}
+
 /// A macro, which must be used for exporting a struct.
 ///
 /// Every export must be done using this macro, to make sure
 /// the plugin is compatible with the program using it
 ///
 /// To learn more about structure, required to register the
-/// plugin's behavior, see [`Freight`] trait documentation
+/// plugins behavior, see [`Freight`] trait documentation
+///
+/// To learn how to do the same job easier automatically
+/// see [`register_freight!`] macro documentation and
+/// [`export_plugin!`] macro documentation
 ///
 /// # Example
 /// ```
@@ -81,6 +111,55 @@ macro_rules! export_freight {
     };
 }
 
+/// A macro, which can be used to create a registry function
+/// easier
+///
+/// # Example
+///
+/// ```
+/// dusk_api::register_freight!(MyFreight, my_reg_fn);
+/// dusk_api::export_freight!("test", "0.1.0", my_reg_fn);
+///
+/// pub struct MyFreight;
+///
+/// impl Freight for MyFreight {
+///     // Your implementation here
+/// }
+/// ```
+#[macro_export]
+macro_rules! register_freight {
+    ($freight: expr, $name: expr) => {
+        #[doc(hidden)]
+        pub fn $name (registrar: &mut dyn $crate::FreightRegistrar) {
+            registrar.register_freight(Box::new($freight));
+        }
+    };
+}
+
+/// A macro, that makes plugin importing a little bit easier
+///
+/// # Example
+///
+/// ```
+/// let mut my_f_proxy: FreightProxy =
+///     import_plugin!("/bin/libtest-plug.so").unwrap();
+///
+/// println!("{}, {}", my_f_proxy.name, my_f_proxy.version);
+/// let fnlist: Vec<Function> = my_f_proxy.get_function_list();
+/// for func in fnlist {
+///     println!("{}, {}", func.name, func.number);
+/// }
+/// ```
+#[macro_export]
+macro_rules! import_plugin {
+    ($lib: expr) => {
+        unsafe{
+            $crate::FreightProxy::load($lib)
+        }
+    };
+}
+
+
 /// Enum, representing a message passed to the program using the
 /// plugin when the function fails
 #[derive(Debug)]
@@ -109,9 +188,9 @@ pub enum RuntimeError {
 ///
 /// A Function object contains
 /// * function name
-/// * it's id number to be used when calling the function
+/// * its id number to be used when calling the function
 /// * argument [`TypeId`]s it takes
-/// * it's return [`TypeId`]
+/// * its return [`TypeId`]
 pub struct Function {
 
     /// Function name, as a reference to a static string. Mainly
@@ -148,7 +227,7 @@ pub struct Function {
 ///
 /// A Type object contains
 /// * type name, used for identifying this type
-/// * it's [`TypeId`] for Any trait to work properly
+/// * its [`TypeId`] for Any trait to work properly
 pub struct Type {
 
     /// Name for the [`TypeId`] owner to be reffered to as a static
@@ -170,7 +249,7 @@ pub struct Type {
 /// the trait has a method [`Freight::get_function_list`], that
 /// provides argument types and return types, actually being used
 /// under Any trait as well as the function name to refer to it and
-/// it's identification number, which is needed to call this function
+/// its identification number, which is needed to call this function
 ///
 /// The [`Freight::call_function`] method actually calls the function,
 /// which matches the provided id.
@@ -216,9 +295,33 @@ pub struct Type {
 /// ```
 pub trait Freight {
 
+    /// Function that is ran when importing the plugin, which
+    /// may be reimplememented in a plugin if it needs to set up
+    /// some things before doing any other actions
+    fn init (self: &mut Self) {}
+
+    /// Function that is used to provide information about
+    /// non standard types, a function from this plugin might take
+    /// as an argument or return, so that the program using the
+    /// plugin can take such non-standard objects from one
+    /// function implemented in this plugin and pass it on into
+    /// another function in this plugin
+    ///
+    /// To use it, just reimplement it to return a vector of
+    /// such [`Type`] structure descriptions
+    fn get_type_list (self: &mut Self) -> Vec<Type> {
+        Vec::new()
+    }
+
+    /// Function that is used to provide information about internal
+    /// functions of a plugin to the program using it, so it can
+    /// choose the function it needs either by its name, argument
+    /// types, return type or all of the above
+    fn get_function_list (self: &mut Self) -> Vec<Function>;
+
     /// Function that is used to call proxy the calls from the
     /// outside of a plugin to the internal functions and must
-    /// implement function calling, by it's number arguments,
+    /// implement function calling, by its number arguments,
     /// contained inside of [`Vec<Box<dyn Any>>`] and must return
     /// either a [`Box<dyn Any>`] representing  the returned value
     /// or a [`RuntimeError`]
@@ -227,20 +330,6 @@ pub trait Freight {
         function_number: u64,
         args: Vec<&mut Box<dyn Any>>
         ) -> Result<Box<dyn Any>, RuntimeError>;
-
-    /// Function that is used to provide information about internal
-    /// functions of a plugin to the program using it, so it can
-    /// choose the function it needs either by it's name, argument
-    /// types, return type or all of the above
-    fn get_function_list (self: &mut Self) -> Vec<Function>;
-
-    /// Function that is used to provide information about
-    /// non standard types, a function from this plugin might take
-    /// as an argument or return, so that the program using the
-    /// plugin can take such non-standard objects from one
-    /// function implemented in this plugin and pass it on into
-    /// another function in this plugin
-    fn get_type_list (self: &mut Self) -> Vec<Type>;
 }
 
 /// Trait to be implemented on structs, which are used to register
@@ -277,7 +366,7 @@ pub trait FreightRegistrar {
 /// functions can.
 ///
 /// This structure must only be built by [`export_freight!`] macro
-/// in plugins. And it's fields are only read by
+/// in plugins. And its fields are only read by
 /// [`FreightProxy::load`] function when loading the plugin
 pub struct FreightDeclaration {
 
@@ -294,7 +383,7 @@ pub struct FreightDeclaration {
     pub name: &'static str,
 
     /// Function that gets a [`FreightRegistrar`] trait implementor
-    /// as an argument and calls it's freight_register function
+    /// as an argument and calls its freight_register function
     /// to provide unexportable things, such as structs, in
     /// particular, [`Freight`] implementor structures
     pub register: fn (&mut dyn FreightRegistrar),
@@ -332,10 +421,10 @@ pub struct FreightProxy {
     /// structure does not outlive the library it was imported from
     pub lib: std::rc::Rc<libloading::Library>,
 
-    /// Imported freight's name as a static string
+    /// Imported freights name as a static string
     pub name: &'static str,
 
-    /// Imported freight's version as a static string
+    /// Imported freights version as a static string
     pub version: &'static str,
 }
 
@@ -408,6 +497,9 @@ impl FreightProxy {
         // so it sets the internal freight variable to a
         // correct value
         (declaration.register)(&mut result);
+
+        // Initialise plugin
+        result.freight.init();
 
         // Return the result
         Ok(result)

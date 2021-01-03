@@ -1,6 +1,6 @@
 [package]
 name = "dusk-api"
-version = "0.0.6"
+version = "0.0.7"
 authors = ["Andy Gozas <andy@gozas.me>"]
 edition = "2018"
 
