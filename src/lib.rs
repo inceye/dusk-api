@@ -160,7 +160,7 @@ macro_rules! import_plugin {
 }
 
 
-/// Enum, representing a message passed to the program using the
+/// Enum, that represents a message passed to the program using the
 /// plugin when the function fails
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -181,6 +181,21 @@ pub enum RuntimeError {
     /// }
     /// ```
     Message { msg: &'static str },
+}
+
+/// Enum, that represents an interplugin request and either contains
+/// a Crucial plugin request (must be provided in order for the
+/// plugin to work or an Optional plugin request which may be
+/// denied
+pub enum InterplugRequest {
+    Crucial {
+        plugin: &'static str,
+        version: &'static str,
+    },
+    Optional {
+        plugin: &'static str,
+        version: &'static str,
+    },
 }
 
 /// Structure representing main characteristics of a function needed
@@ -298,7 +313,24 @@ pub trait Freight {
     /// Function that is ran when importing the plugin, which
     /// may be reimplememented in a plugin if it needs to set up
     /// some things before doing any other actions
-    fn init (self: &mut Self) {}
+    fn init (self: &mut Self) -> Vec<InterplugRequest> {
+        Vec::new()
+    }
+
+    /// Function that replies to the interplugin request by
+    /// providing the requested plugin
+    fn interplug_provide (
+        self: &mut Self,
+        _request: InterplugRequest,
+        _freight_proxy: std::rc::Rc<FreightProxy>,
+        ) {}
+
+    /// Function that replies to the interplugin request by
+    /// by informing it that the request was denied
+    fn interplug_deny (
+        self: &mut Self,
+        _request: InterplugRequest,
+        ) {}
 
     /// Function that is used to provide information about
     /// non standard types, a function from this plugin might take
@@ -446,10 +478,6 @@ impl Freight for EmptyFreight {
     fn get_function_list (self: &mut Self) -> Vec<Function> {
         Vec::new()
     }
-
-    fn get_type_list (self: &mut Self) -> Vec<Type> {
-        Vec::new()
-    }
 }
 
 /// Functions, needed to configure [`FreightProxy`] structure
@@ -498,9 +526,6 @@ impl FreightProxy {
         // correct value
         (declaration.register)(&mut result);
 
-        // Initialise plugin
-        result.freight.init();
-
         // Return the result
         Ok(result)
     }
@@ -518,6 +543,31 @@ impl Freight for FreightProxy {
         args: Vec<&mut Box<dyn Any>>
         ) -> Result<Box<dyn Any>, RuntimeError> {
         self.freight.call_function(function_number, args)
+    }
+
+    // Proxy function, that calls the internal freights init function
+    // and returns its plugin dependencies
+    fn init (self: &mut Self) -> Vec<InterplugRequest> {
+        self.freight.init()
+    }
+
+    // Proxy function for replying to an interplugin dependency
+    // request by providing the requested plugin
+    fn interplug_provide (
+        self: &mut Self,
+        request: InterplugRequest,
+        freight_proxy: std::rc::Rc<FreightProxy>,
+        ) {
+        self.freight.interplug_provide(request, freight_proxy);
+    }
+
+    // Proxy function for replying to an interplugin dependency
+    // request by informing it of request denial
+    fn interplug_deny (
+        self: &mut Self,
+        request: InterplugRequest,
+        ) {
+        self.freight.interplug_deny(request);
     }
 
     // Proxy function, that calls the function that gets function
