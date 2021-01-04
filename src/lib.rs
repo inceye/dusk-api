@@ -184,17 +184,69 @@ pub enum RuntimeError {
 }
 
 /// Enum, that represents an interplugin request and either contains
-/// a Crucial plugin request (must be provided in order for the
-/// plugin to work or an Optional plugin request which may be
+/// a [`InterplugRequest::Crucial`] plugin request (must be provided
+/// in order for the plugin to work or an
+/// [`InterplugRequest::Optional`] plugin request which may be
 /// denied
+///
+/// For more complex situations, when several plugins might provide
+/// similar functionality, [`InterplugRequest::Either`] may be used
+/// to provide several requests, each of which may be fulfilled
+/// for the plugin to work correctly. In case this  functionality
+/// may also be provided by several different plugins together,
+/// [`InterplugRequest::Each`] should be used.
+///
+/// If the request is optional, the final decision to provide it
+/// or not to provide it is supposed to be made by the user. For
+/// example, if user needs some function from a plugin, that
+/// requires an optional interplug request to be fulfilled, they
+/// just add it to the dependencies, so the program, that provides
+/// the dependencies, when seeing this request finds out that
+/// the plugin that was requested was already loaded earlier,
+/// so it might as well provide it to the requesting plugin.
 pub enum InterplugRequest {
+
+    /// An interplug request that *MUST* be fulfilled in order
+    /// for the plugin to work at all
     Crucial {
         plugin: &'static str,
         version: &'static str,
     },
+
+    /// An interplug request that must be fulfilled in order for
+    /// the plugin to fully work, which means that without it
+    /// some functions will be unavailable
     Optional {
         plugin: &'static str,
         version: &'static str,
+    },
+
+    /// An interlplug request that contains several interlplug
+    /// requests, either of which *MUST* be fulfilled for the
+    /// plugin to work at all
+    Either {
+        requests: Vec<InterplugRequest>,
+    },
+
+    /// An interlplug request that contains several interplug
+    /// requests, either of which should be fulfilled for the
+    /// plugin to fully work.
+    OptionalEither {
+        requests: Vec<InterplugRequest>,
+    },
+
+    /// An interplug request that contains several interplug
+    /// requests, each of which *MUST* be fulfilled in order for
+    /// the plugin to work
+    Each {
+        requests: Vec<InterplugRequest>,
+    },
+
+    /// An interplug request that contains several interplug
+    /// requests, each of which should be fulfilled in for
+    /// the plugin to fully work
+    OptionalEach {
+        requests: Vec<InterplugRequest>,
     },
 }
 
@@ -233,6 +285,13 @@ pub struct Function {
     /// storing an [`Any`] trait implementor and getting back
     /// from a [`Box<dyn Any>`]
     pub return_type: TypeId,
+
+    /// If the function can not work without some optional
+    /// interplug requests fulfilled, they must be included in
+    /// this field when providing the function to the
+    /// program that is using the plugin, so it knows if this
+    /// function is available in the current setup or not.
+    pub dependencies: Option<Vec<InterplugRequest>>,
 }
 
 /// Structure representing main characteristics of an object type
