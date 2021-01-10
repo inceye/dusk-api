@@ -550,7 +550,8 @@ impl FreightProxy {
 
         // Import the library
         // *FIXME* Get rid of unwrap
-        let lib = std::rc::Rc::new(
+        let lib : std::rc::Rc<libloading::Library>
+            = std::rc::Rc::new(
             libloading::Library::new(lib_path).unwrap());
 
         // Get the plugin declaration structure from this lib
