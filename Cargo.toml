@@ -1,5 +1,9 @@
 [package]
 name = "dusk-api"
+description = "Crate, that defines plugin interface used in dusk project"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-file = "LICENSE"
 version = "0.0.9"
 authors = ["Andy Gozas <andy@gozas.me>"]
 edition = "2018"
