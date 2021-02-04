@@ -3,6 +3,7 @@ name = "dusk-api"
 description = "Crate, that defines plugin interface used in dusk project"
 readme = "README.md"
 license-file = "LICENSE"
+license = "GPL-3.0-or-later"
 version = "0.0.10"
 authors = ["Andy Gozas <andy@gozas.me>"]
 edition = "2018"
