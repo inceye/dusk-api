@@ -63,7 +63,7 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 /// ```
 #[macro_export]
 macro_rules! export_plugin {
-    ($name: expr, $version: expr, $freight: expr) => {
+    ($name: expr, $version: expr, $freight: ident) => {
         $crate::register_freight!($freight, freight_registry_function);
         $crate::export_freight!($name, $version, freight_registry_function);
     };
@@ -128,7 +128,7 @@ macro_rules! export_freight {
 /// ```
 #[macro_export]
 macro_rules! register_freight {
-    ($freight: expr, $name: expr) => {
+    ($freight: expr, $name: ident) => {
         #[doc(hidden)]
         pub fn $name (registrar: &mut dyn $crate::FreightRegistrar) {
             registrar.register_freight(Box::new($freight));
@@ -247,6 +247,41 @@ pub enum InterplugRequest {
     /// the plugin to fully work
     OptionalEach {
         requests: Vec<InterplugRequest>,
+    },
+}
+
+/// Enum that represents a system limitation, that a plugin either
+/// needs to know to work correctly, or should be notifyed of in
+/// case main program wants to limit some settings
+///
+/// When initiating the plugin, using [`Freight::init`], a vector
+/// of limitations can be passed to the plugin, to set such limits
+/// as number of cpu threads, memory working directories, etc.
+/// If for example the main program started to do some multithreading
+/// itself, it may notify the plugin using [`Freight::update_limitations`]
+/// that the maximum amount of threads it can use was lowered from
+/// the previous amount to 1, or if the main program does not care
+/// about the amount of threads anymore, and lets the plugin decide
+/// by itself which amount it wants to use, it can send a
+/// [`Limitation::Reset`] to it.
+pub enum Limitation {
+
+    /// Set the maximum allowed number, represetting some setting
+    Top {
+        setting: &'static str,
+        limit: isize,
+    },
+
+    /// Set the minimum allowed number, representing some setting
+    Bottom {
+        setting: &'static str,
+        limit: isize,
+    },
+
+    /// Reset the setting to default value (as if the main program
+    /// has never set any value to the setting at all)
+    Reset {
+        setting: &'static str,
     },
 }
 
@@ -372,8 +407,19 @@ pub trait Freight {
     /// Function that is ran when importing the plugin, which
     /// may be reimplememented in a plugin if it needs to set up
     /// some things before doing any other actions
-    fn init (self: &mut Self) -> Vec<InterplugRequest> {
+    ///
+    /// If some system limitations should be applied, they must be
+    /// included as an argument. If the plugin needs to use other
+    /// plugins, it should request them as a Vector of
+    /// [`InterplugRequest`]
+    fn init (self: &mut Self, _limitations: &Option<Vec<Limitation>>)
+        -> Vec<InterplugRequest> {
         Vec::new()
+    }
+
+    /// Function that updates system limitations
+    fn update_limitations (self: &mut Self, _limitations: &Vec<Limitation>) {
+        ()
     }
 
     /// Function that replies to the interplugin request by
@@ -607,8 +653,15 @@ impl Freight for FreightProxy {
 
     // Proxy function, that calls the internal freights init function
     // and returns its plugin dependencies
-    fn init (self: &mut Self) -> Vec<InterplugRequest> {
-        self.freight.init()
+    fn init (self: &mut Self, limitations: &Option<Vec<Limitation>>)
+        -> Vec<InterplugRequest> {
+        self.freight.init(limitations)
+    }
+
+    // Proxy function that takes the list of new system limitations
+    // and passes it to the plugin
+    fn update_limitations (self: &mut Self, limitations: &Vec<Limitation>) {
+        self.freight.update_limitations(limitations)
     }
 
     // Proxy function for replying to an interplugin dependency
