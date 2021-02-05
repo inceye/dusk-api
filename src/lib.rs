@@ -251,7 +251,7 @@ pub enum InterplugRequest {
 }
 
 /// Enum that represents a system limitation, that a plugin either
-/// needs to know to work correctly, or should be notifyed of in
+/// needs to know to work correctly, or should be notified of in
 /// case main program wants to limit some settings
 ///
 /// When initiating the plugin, using [`Freight::init`], a vector
@@ -342,6 +342,23 @@ pub struct Type {
     /// Name for the [`TypeId`] owner to be reffered to as a static
     /// string
     pub name: &'static str,
+
+    /// If an object of this type should have some functions, that
+    /// can be called on it, they should be provided here. The 
+    /// functions provided here should be called using the same
+    /// [`Freight::call_function`] function, so they should
+    /// all have unique numbers
+    pub methods : Option<Vec<Function>>,
+
+    /// All fields of an object of this type, user needs to be able
+    /// to access, should be located here. The field name then
+    /// will be the function name, functions return type is the 
+    /// field type and the only argument of the function should 
+    /// be of the type, the field is owned by. These functions
+    /// are once again called by the same [`Freight::call_function`]
+    /// function and should all have unique numbers over all functions
+    /// called by [`Freight::call_function`]
+    pub fields : Option<Vec<Function>>,
 
     /// [`TypeId`] object, gotten from the structure, being
     /// provided to the program, that is using the plugin
@@ -455,6 +472,15 @@ pub trait Freight {
     /// choose the function it needs either by its name, argument
     /// types, return type or all of the above
     fn get_function_list (self: &mut Self) -> Vec<Function>;
+    
+    /// Function that is used to provide information about internal
+    /// functions of a plugin that are named after binary operators
+    /// and should be treated as such. These functions have to 
+    /// always get exactly two arguments and they are called by the
+    /// same function that calls any function [`Freight::call_function`]
+    fn get_operator_list (self: &mut Self) -> Vec<Function> {
+        Vec::new()
+    }
 
     /// Function that is used to call proxy the calls from the
     /// outside of a plugin to the internal functions and must
