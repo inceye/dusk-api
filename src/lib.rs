@@ -49,6 +49,7 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 /// A macro, which can be used to make exporting of a struct
 /// easier
+/// FIXME
 ///
 /// # Example
 ///
@@ -80,6 +81,7 @@ macro_rules! export_plugin {
 /// To learn how to do the same job easier automatically
 /// see [`register_freight!`] macro documentation and
 /// [`export_plugin!`] macro documentation
+/// FIXME
 ///
 /// # Example
 /// ```
@@ -116,6 +118,7 @@ macro_rules! export_freight {
 ///
 /// # Example
 ///
+///FIXME
 /// ```
 /// dusk_api::register_freight!(MyFreight, my_reg_fn);
 /// dusk_api::export_freight!("test", "0.1.0", my_reg_fn);
@@ -204,13 +207,14 @@ pub enum RuntimeError {
 /// the dependencies, when seeing this request finds out that
 /// the plugin that was requested was already loaded earlier,
 /// so it might as well provide it to the requesting plugin.
+/// FIXME
 pub enum InterplugRequest {
 
     /// An interplug request that *MUST* be fulfilled in order
     /// for the plugin to work at all
     Crucial {
         plugin: &'static str,
-        version: &'static str,
+        version: Version,
     },
 
     /// An interplug request that must be fulfilled in order for
@@ -218,7 +222,7 @@ pub enum InterplugRequest {
     /// some functions will be unavailable
     Optional {
         plugin: &'static str,
-        version: &'static str,
+        version: Version,
     },
 
     /// An interlplug request that contains several interlplug
@@ -285,50 +289,6 @@ pub enum Limitation {
     },
 }
 
-/// Structure representing main characteristics of a function needed
-/// for the program using a plugin, which implements it
-///
-/// A Function object contains
-/// * function name
-/// * its id number to be used when calling the function
-/// * argument [`TypeId`]s it takes
-/// * its return [`TypeId`]
-pub struct Function {
-
-    /// Function name, as a reference to a static string. Mainly
-    /// used to give user the ability to choose the function they
-    /// want to use
-    pub name: &'static str,
-
-    /// Function ID, used to call this function
-    ///
-    /// **Should always be the same for same functions in the newer
-    /// releases, unless a new plugin version is submitted**
-    pub number: u64,
-
-    /// [`TypeId`]s of arguments, this function expects to find
-    /// inside of a Vector of [`Any`] trait implementors
-    ///
-    /// See [`std::any::Any`] documentation to find out more about
-    /// storing an [`Any`] trait implementor and getting back
-    /// from a [`Box<dyn Any>`]
-    pub arg_types: Vec<TypeId>,
-
-    /// The [`TypeId`] of the returned [`Any`] trait implementor
-    ///
-    /// See [`std::any::Any`] documentation to find out more about
-    /// storing an [`Any`] trait implementor and getting back
-    /// from a [`Box<dyn Any>`]
-    pub return_type: TypeId,
-
-    /// If the function can not work without some optional
-    /// interplug requests fulfilled, they must be included in
-    /// this field when providing the function to the
-    /// program that is using the plugin, so it knows if this
-    /// function is available in the current setup or not.
-    pub dependencies: Option<Vec<InterplugRequest>>,
-}
-
 /// Structure representing main characteristics of an object type
 /// needed for the program, using the plugin, that either imports
 /// or defines this type in case this type is not present in
@@ -366,6 +326,78 @@ pub struct Type {
     /// See [`std::any::TypeId`] documentation to find out how
     /// to get a type id of a type
     pub type_id: TypeId,
+}
+
+///FIXME
+pub struct Argument {
+
+    pub arg_type: TypeId,
+
+    pub keyword: Option<&'static str>,
+
+    pub default_value: Option<Box<dyn Any>>,
+
+    pub optional: bool,
+
+    pub mutable: bool,
+}
+
+impl Default for Argument {//FIXME
+    fn default () -> Argument {
+        Argument {
+            arg_type: TypeId::of::<u8>(),
+            keyword: None,
+            default_value: None,
+            optional: false,
+            mutable: false,
+        }
+    }
+}
+
+/// Structure representing main characteristics of a function needed
+/// for the program using a plugin, which implements it
+///
+/// A Function object contains
+/// * function name
+/// * its id number to be used when calling the function
+/// FIXME
+/// * argument [`TypeId`]s it takes
+/// * its return [`TypeId`]
+pub struct Function {
+
+    /// Function name, as a reference to a static string. Mainly
+    /// used to give user the ability to choose the function they
+    /// want to use
+    pub name: &'static str,
+
+    /// Function ID, used to call this function
+    ///
+    /// **Should always be the same for same functions in the newer
+    /// releases, unless a new plugin version is submitted**
+    pub number: u64,
+
+    //FIXME
+    pub args: Vec<Argument>,
+
+    /// The [`TypeId`] of the returned [`Any`] trait implementor
+    ///
+    /// See [`std::any::Any`] documentation to find out more about
+    /// storing an [`Any`] trait implementor and getting back
+    /// from a [`Box<dyn Any>`]
+    pub return_type: TypeId,
+
+    /// If the function can not work without some optional
+    /// interplug requests fulfilled, they must be included in
+    /// this field when providing the function to the
+    /// program that is using the plugin, so it knows if this
+    /// function is available in the current setup or not.
+    pub dependencies: Option<Vec<InterplugRequest>>,
+}
+
+pub struct Version {
+    pub major: usize,
+    pub minor: usize,
+    //FIXME
 }
 
 /// Trait, that defines the plugin behavior
@@ -480,6 +512,11 @@ pub trait Freight {
     /// same function that calls any function [`Freight::call_function`]
     fn get_operator_list (self: &mut Self) -> Vec<Function> {
         Vec::new()
+    }
+    
+    //FIXME
+    fn get_backwards_compatibility (self: &mut Self) -> Option<Version> {
+        None
     }
 
     /// Function that is used to call proxy the calls from the
@@ -713,6 +750,12 @@ impl Freight for FreightProxy {
     // list from the inside freight and returns the result
     fn get_function_list (self: &mut Self) -> Vec<Function> {
         self.freight.get_function_list()
+    }
+
+    // Proxy function, that calls the function that gets the backwards
+    // compatibility version limit
+    fn get_backwards_compatibility (self: &mut Self) -> Option<Version> {
+        self.freight.get_backwards_compatibility()
     }
 
     // Proxy function, that calls the function that gets type
