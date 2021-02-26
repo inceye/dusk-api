@@ -346,17 +346,61 @@ pub struct Type {
     pub type_id: TypeId,
 }
 
-///FIXME
+/// A structure, that contains all information, the compiler needs to
+/// know about function parameters.
+///
+/// The only required field is arg_type, but there are some optional
+/// fields you might want to use.
 pub struct Parameter {
 
+    /// The argument type, as it's [`TypeId`]
+    ///
+    /// Always required
     pub arg_type: TypeId,
 
+    /// If you want to add ability to set the parameter, using a 
+    /// keyword, you might want to set the keyword to [`Some`],
+    /// 
+    /// Default value is [`None`]
     pub keyword: Option<&'static str>,
 
+    /// If your keyword argument is optional, you can set
+    /// it's default value to Some
+    ///
+    /// Default value is [`None`]
     pub default_value: Option<Box<dyn Any>>,
 
-    pub optional: bool,
+    /// If you want the user to be able to pass multiple arguments
+    /// with one keyword or just multiple positon arguments, you
+    /// would need to set allow_multiple to true
+    ///
+    /// In this case, in the vector of arguments passed to the
+    /// call function, all arguments for this [`Parameter`] will
+    /// be grouped in a vector, at the position of this parameter
+    /// at the vector of parameters
+    ///
+    /// *NOTE* Only one positional parameter may be multiple.
+    /// If keyword parameters are multiple or there is already a
+    /// multiple positional argument, there may be as many 
+    /// of multiple keyword parameters as you want, but the 
+    /// keywords will be required for all of them and can not
+    /// be omitted by user.
+    ///
+    /// Default value is false
+    pub allow_multiple: bool,
+    
+    /// If the parameter allows for multiple arguments to be 
+    /// passed in it, you may set max_amount of those arguments.
+    ///
+    /// Set to 0 to allow unlimited arguments
+    ///
+    /// Default value is 0
+    pub max_amount: usize,
 
+    /// Allow to change the value of the argument
+    ///
+    /// *NOTE* Can only be used with arguments with no 
+    /// default value and allow_multiple set to false
     pub mutable: bool,
 }
 
@@ -366,7 +410,8 @@ impl Default for Parameter {//FIXME
             arg_type: TypeId::of::<u8>(),
             keyword: None,
             default_value: None,
-            optional: false,
+            allow_multiple: false,
+            max_amount: 0,
             mutable: false,
         }
     }
