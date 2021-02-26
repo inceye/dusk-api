@@ -68,6 +68,10 @@ macro_rules! export_plugin {
         $crate::register_freight!($freight, freight_registry_function);
         $crate::export_freight!($name, $version, freight_registry_function);
     };
+    ($name: expr, $version: expr, $back_version: expr, $freight: ident) => {
+        $crate::register_freight!($freight, freight_registry_function);
+        $crate::export_freight!($name, $version, $back_version, freight_registry_function);
+    };
 }
 
 /// A macro, which must be used for exporting a struct.
@@ -107,6 +111,20 @@ macro_rules! export_freight {
                 rustc_version: $crate::RUSTC_VERSION,
                 api_version: $crate::API_VERSION,
                 freight_version: $version,
+                backwards_compat_version: $version,
+                name: $name,
+                register: $register,
+            };
+    };
+    ($name:expr, $version:expr, $back_version:expr, $register:expr) => {
+        #[doc(hidden)]
+        #[no_mangle]
+        pub static freight_declaration: $crate::FreightDeclaration
+            = $crate::FreightDeclaration {
+                rustc_version: $crate::RUSTC_VERSION,
+                api_version: $crate::API_VERSION,
+                freight_version: $version,
+                backwards_compat_version: $back_version,
                 name: $name,
                 register: $register,
             };
@@ -329,7 +347,7 @@ pub struct Type {
 }
 
 ///FIXME
-pub struct Argument {
+pub struct Parameter {
 
     pub arg_type: TypeId,
 
@@ -342,9 +360,9 @@ pub struct Argument {
     pub mutable: bool,
 }
 
-impl Default for Argument {//FIXME
-    fn default () -> Argument {
-        Argument {
+impl Default for Parameter {//FIXME
+    fn default () -> Parameter {
+        Parameter {
             arg_type: TypeId::of::<u8>(),
             keyword: None,
             default_value: None,
@@ -352,6 +370,13 @@ impl Default for Argument {//FIXME
             mutable: false,
         }
     }
+}
+
+pub struct Kwarg {
+
+    pub keyword: &'static str,
+
+    pub value: Box<dyn Any>,
 }
 
 /// Structure representing main characteristics of a function needed
@@ -376,8 +401,13 @@ pub struct Function {
     /// releases, unless a new plugin version is submitted**
     pub number: u64,
 
-    //FIXME
-    pub args: Vec<Argument>,
+    /// A vector of function parameter definitions, as objects 
+    /// of type [`Parameter`]
+    ///
+    /// This field contains all information, compiler needs to 
+    /// know about argument amount, types and keywords in case
+    /// 
+    pub parameters: Vec<Parameter>,
 
     /// The [`TypeId`] of the returned [`Any`] trait implementor
     ///
@@ -385,6 +415,22 @@ pub struct Function {
     /// storing an [`Any`] trait implementor and getting back
     /// from a [`Box<dyn Any>`]
     pub return_type: TypeId,
+
+    /// Bool that identifyes whether or not should the compiler
+    /// ignore argument types, and just hand them over to the
+    /// function as is.
+    ///
+    /// In this case, the keywords will not be checked, so all
+    /// keyword arguments will be provided as objects of type
+    /// [`Kwarg`]
+    /// 
+    /// If the function might take different arguments in different
+    /// situations, or even have unlimited amount of arguments,
+    /// sometimes it is easier to make one function that would
+    /// parse the arguments and decide how to deal with them. For 
+    /// such function, compiler will not check the argument types
+    /// nor amount of them.
+    pub no_check_args: bool,
 
     /// If the function can not work without some optional
     /// interplug requests fulfilled, they must be included in
@@ -394,10 +440,35 @@ pub struct Function {
     pub dependencies: Option<Vec<InterplugRequest>>,
 }
 
+impl Default for Function {
+    fn default () -> Function {
+        Function {
+            name: "",
+            number: 0,
+            parameters: Vec::new(),
+            return_type: TypeId::of::<u8>(),
+            no_check_args: false,
+            dependencies: None,
+        }
+    }
+}
+
 pub struct Version {
     pub major: usize,
     pub minor: usize,
-    //FIXME
+    pub release: usize,
+    pub build: usize,
+}
+
+impl Default for Version {
+    fn default () -> Version {
+        Version {
+            major: 0,
+            minor: 0,
+            release: 0,
+            build: 0,
+        }
+    }
 }
 
 /// Trait, that defines the plugin behavior
@@ -577,7 +648,11 @@ pub struct FreightDeclaration {
     pub api_version: &'static str,
 
     /// Version of the freight being imported
-    pub freight_version: &'static str,
+    pub freight_version: Version,
+    
+    /// The earliest version, for which the code was designed, this
+    /// code can safely be run with the new plugin version
+    pub backwards_compat_version: Version,
 
     /// Name of the freight being imported
     pub name: &'static str,
@@ -624,8 +699,12 @@ pub struct FreightProxy {
     /// Imported freights name as a static string
     pub name: &'static str,
 
-    /// Imported freights version as a static string
-    pub version: &'static str,
+    /// Imported freights version 
+    pub version: Version,
+
+    /// The earliest version, for which the code was designed, this
+    /// code can safely be run with the new plugin version
+    pub backwards_compat_version: Version,
 }
 
 /// Structure representing an empty [`Freight`] implementor, needed
@@ -687,6 +766,8 @@ impl FreightProxy {
             lib: lib,
             name: declaration.name,
             version: declaration.freight_version,
+            backwards_compat_version: 
+                declaration.backwards_compat_version,
         };
 
         // Call the function, imported in the plugin declaration
