@@ -243,6 +243,25 @@ pub enum InterplugRequest {
         version: Version,
     },
 
+    /// An interplug request that *MUST* be fulfilled in order
+    /// for the plugin to work at all, but any plugin, that
+    /// implements the needed trait may be used.
+    CrucialTrait {
+        plugin: &'static str,
+        trait_name: &'static str,
+        version: Version,
+    },
+
+    /// An interplug request that must be fulfilled in order for
+    /// the plugin to fully work, which means that without it
+    /// some functions will be unavailable, but any plugin, that
+    /// implements the needed trait may be used.
+    OptionalTrait {
+        plugin: &'static str,
+        trait_name: &'static str,
+        version: Version,
+    },
+
     /// An interlplug request that contains several interlplug
     /// requests, either of which *MUST* be fulfilled for the
     /// plugin to work at all
@@ -307,6 +326,21 @@ pub enum Limitation {
     },
 }
 
+pub struct TraitDefinition {
+
+    pub name: &'static str,
+
+    pub methods: Vec<Function>,
+}
+
+pub struct TraitImplementation {
+
+    pub name: &'static str,
+
+    pub methods: Vec<Function>,
+}
+
+
 /// Structure representing main characteristics of an object type
 /// needed for the program, using the plugin, that either imports
 /// or defines this type in case this type is not present in
@@ -315,6 +349,8 @@ pub enum Limitation {
 /// A Type object contains
 /// * type name, used for identifying this type
 /// * its [`TypeId`] for Any trait to work properly
+/// * its methods
+/// * functions needed to access its fields
 pub struct Type {
 
     /// Name for the [`TypeId`] owner to be reffered to as a static
@@ -330,13 +366,15 @@ pub struct Type {
 
     /// All fields of an object of this type, user needs to be able
     /// to access, should be located here. The field name then
-    /// will be the function name, functions return type is the 
+    /// will be the function name, function's return type is the 
     /// field type and the only argument of the function should 
     /// be of the type, the field is owned by. These functions
-    /// are once again called by the same [`Freight::call_function`]
+    /// are, once again, called by the same [`Freight::call_function`]
     /// function and should all have unique numbers over all functions
     /// called by [`Freight::call_function`]
     pub fields : Option<Vec<Function>>,
+
+    pub trait_implementations : Option<Vec<TraitImplementation>>,
 
     /// [`TypeId`] object, gotten from the structure, being
     /// provided to the program, that is using the plugin
@@ -344,6 +382,17 @@ pub struct Type {
     /// See [`std::any::TypeId`] documentation to find out how
     /// to get a type id of a type
     pub type_id: TypeId,
+}
+
+pub struct Module {
+
+    pub types: Vec<Type>,
+
+    pub functions: Vec<Function>,
+
+    pub submodules: Vec<Module>,
+
+    pub trait_definitions: Vec<TraitDefinition>,
 }
 
 /// A structure, that contains all information, the compiler needs to
@@ -357,6 +406,14 @@ pub struct Parameter {
     ///
     /// Always required
     pub arg_type: TypeId,
+
+    /// Allow to change the value of the argument
+    ///
+    /// *NOTE* Can only be used with arguments with no 
+    /// default value and allow_multiple set to false
+    pub mutable: bool,
+
+    pub keyword_only: bool,
 
     /// If you want to add ability to set the parameter, using a 
     /// keyword, you might want to set the keyword to [`Some`],
@@ -397,22 +454,18 @@ pub struct Parameter {
     /// Default value is 0
     pub max_amount: usize,
 
-    /// Allow to change the value of the argument
-    ///
-    /// *NOTE* Can only be used with arguments with no 
-    /// default value and allow_multiple set to false
-    pub mutable: bool,
 }
 
 impl Default for Parameter {//FIXME
     fn default () -> Parameter {
         Parameter {
             arg_type: TypeId::of::<u8>(),
+            mutable: false,
+            keyword_only: false,
             keyword: None,
             default_value: None,
             allow_multiple: false,
             max_amount: 0,
-            mutable: false,
         }
     }
 }
@@ -612,6 +665,14 @@ pub trait Freight {
     /// To use it, just reimplement it to return a vector of
     /// such [`Type`] structure descriptions
     fn get_type_list (self: &mut Self) -> Vec<Type> {
+        Vec::new()
+    }
+
+    fn get_module_list (self: &mut Self) -> Vec<Module> {
+        Vec::new()
+    }
+
+    fn get_trait_list (self: &mut Self) -> Vec<TraitDefinition> {
         Vec::new()
     }
 
@@ -888,6 +949,14 @@ impl Freight for FreightProxy {
     // list from the inside freight and returns the result
     fn get_type_list (self: &mut Self) -> Vec<Type> {
         self.freight.get_type_list()
+    }
+
+    fn get_module_list (self: &mut Self) -> Vec<Module> {
+        self.freight.get_module_list()
+    }
+
+    fn get_trait_list (self: &mut Self) -> Vec<TraitDefinition> {
+        self.freight.get_trait_list()
     }
 }
 
