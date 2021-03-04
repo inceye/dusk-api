@@ -180,11 +180,10 @@ macro_rules! import_plugin {
     };
 }
 
-
 /// Enum, that represents a message passed to the program using the
 /// plugin when the function fails
 #[derive(Debug)]
-pub enum RuntimeError {
+pub enum DuskError {
 
     /// Send a message, representing the runtime error, that occured
     /// while using a function.
@@ -195,13 +194,33 @@ pub enum RuntimeError {
     ///     self: &mut Self,
     ///     _function_number: u64,
     ///     _args: Vec<&mut Box<dyn Any>>
-    ///     ) -> Result<Box<dyn Any>, RuntimeError> {
-    ///     Err(RuntimeError::Message{
+    ///     ) -> Result<Box<dyn Any>, DuskError> {
+    ///     Err(DuskError::Message{
     ///         msg: "You can't call an empty freight"
     ///     })
     /// }
     /// ```
     Message { msg: &'static str },
+
+    RuntimeError { msg: &'static str },
+
+    TypeError { msg: &'static str },
+
+    ValueError { msg: &'static str },
+
+    OsError { msg: &'static str },
+
+    AssertionError { msg: &'static str },
+
+    IndexError { msg: &'static str },
+
+    ZeroDivisionError { msg: &'static str },
+
+    OverflowError { msg: &'static str },
+
+    ImportError { msg: &'static str },
+
+    NotImplementedError { msg: &'static str },
 }
 
 /// Enum, that represents an interplugin request and either contains
@@ -590,7 +609,7 @@ impl Default for Version {
 ///         self: &mut Self,
 ///         function_number: u64,
 ///         mut args: Vec<&mut Box<dyn Any>>
-///         ) -> Result<Box<dyn Any>, RuntimeError> {
+///         ) -> Result<Box<dyn Any>, DuskError> {
 ///
 ///         match function_number {
 ///             0 => return Ok(Box::new(
@@ -598,7 +617,7 @@ impl Default for Version {
 ///                         .unwrap()
 ///                         .clone())
 ///                 ),
-///             _ => return Err(RuntimeError::Message{
+///             _ => return Err(DuskError::Message{
 ///                     msg: "bad fn number"
 ///                 }),
 ///         }
@@ -701,12 +720,12 @@ pub trait Freight {
     /// implement function calling, by its number arguments,
     /// contained inside of [`Vec<Box<dyn Any>>`] and must return
     /// either a [`Box<dyn Any>`] representing  the returned value
-    /// or a [`RuntimeError`]
+    /// or a [`DuskError`]
     fn call_function (
         self: &mut Self,
         function_number: u64,
         args: Vec<&mut Box<dyn Any>>
-        ) -> Result<Box<dyn Any>, RuntimeError>;
+        ) -> Result<Box<dyn Any>, DuskError>;
 }
 
 /// Trait to be implemented on structs, which are used to register
@@ -821,9 +840,9 @@ impl Freight for EmptyFreight {
         self: &mut Self,
         _function_number: u64,
         _args: Vec<&mut Box<dyn Any>>
-        ) -> Result<Box<dyn Any>, RuntimeError> {
+        ) -> Result<Box<dyn Any>, DuskError> {
 
-        Err(RuntimeError::Message{
+        Err(DuskError::Message{
             msg: "You can't call an empty freight"
         })
     }
@@ -840,7 +859,7 @@ impl FreightProxy {
     /// Function, used to build a [`FreightProxy`] object from a
     /// library path
     pub unsafe fn load (lib_path: &str)
-        -> Result<FreightProxy, RuntimeError> {
+        -> Result<FreightProxy, DuskError> {
 
         // Import the library
         // *FIXME* Get rid of unwrap
@@ -860,7 +879,7 @@ impl FreightProxy {
         if declaration.rustc_version != RUSTC_VERSION
             || declaration.api_version != API_VERSION
         {
-            return Err(RuntimeError::Message{
+            return Err(DuskError::Message{
                 msg: "Version mismatch"
             });
         }
@@ -897,7 +916,7 @@ impl Freight for FreightProxy {
         self: &mut Self,
         function_number: u64,
         args: Vec<&mut Box<dyn Any>>
-        ) -> Result<Box<dyn Any>, RuntimeError> {
+        ) -> Result<Box<dyn Any>, DuskError> {
         self.freight.call_function(function_number, args)
     }
 
