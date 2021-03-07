@@ -247,38 +247,28 @@ pub enum DuskError {
 /// FIXME
 pub enum InterplugRequest {
 
+    PlugRequest {
+        plugin: &'static str,
+        version: Version,
+    },
+
+    TraitRequest {
+        plugin: &'static str,
+        trait_name: &'static str,
+        version: Version,
+    },
+
     /// An interplug request that *MUST* be fulfilled in order
     /// for the plugin to work at all
     Crucial {
-        plugin: &'static str,
-        version: Version,
+        request: Box<InterplugRequest>,
     },
 
     /// An interplug request that must be fulfilled in order for
     /// the plugin to fully work, which means that without it
     /// some functions will be unavailable
     Optional {
-        plugin: &'static str,
-        version: Version,
-    },
-
-    /// An interplug request that *MUST* be fulfilled in order
-    /// for the plugin to work at all, but any plugin, that
-    /// implements the needed trait may be used.
-    CrucialTrait {
-        plugin: &'static str,
-        trait_name: &'static str,
-        version: Version,
-    },
-
-    /// An interplug request that must be fulfilled in order for
-    /// the plugin to fully work, which means that without it
-    /// some functions will be unavailable, but any plugin, that
-    /// implements the needed trait may be used.
-    OptionalTrait {
-        plugin: &'static str,
-        trait_name: &'static str,
-        version: Version,
+        request: Box<InterplugRequest>,
     },
 
     /// An interlplug request that contains several interlplug
@@ -288,24 +278,10 @@ pub enum InterplugRequest {
         requests: Vec<InterplugRequest>,
     },
 
-    /// An interlplug request that contains several interplug
-    /// requests, either of which should be fulfilled for the
-    /// plugin to fully work.
-    OptionalEither {
-        requests: Vec<InterplugRequest>,
-    },
-
     /// An interplug request that contains several interplug
     /// requests, each of which *MUST* be fulfilled in order for
     /// the plugin to work
     Each {
-        requests: Vec<InterplugRequest>,
-    },
-
-    /// An interplug request that contains several interplug
-    /// requests, each of which should be fulfilled in for
-    /// the plugin to fully work
-    OptionalEach {
         requests: Vec<InterplugRequest>,
     },
 }
@@ -356,7 +332,16 @@ pub struct TraitImplementation {
 
     pub name: &'static str,
 
-    pub methods: Vec<Function>,
+    pub methods: Vec<TraitFunction>,
+}
+
+pub struct TraitProxy {
+    
+    pub trait_name: &'static str,
+
+    pub freight_proxy: std::rc::Rc<FreightProxy>,
+
+    pub function_links: Vec<usize>,
 }
 
 
@@ -562,6 +547,88 @@ impl Default for Function {
         Function {
             name: "",
             number: 0,
+            parameters: Vec::new(),
+            return_type: TypeId::of::<u8>(),
+            no_check_args: false,
+            dependencies: None,
+        }
+    }
+}
+
+/// Structure representing main characteristics of a function needed
+/// for the program using a plugin, which implements it
+///
+/// A TraitFunction object contains
+/// * function name
+/// * its id number to be used when calling the function
+/// * its number in trait
+/// FIXME
+/// * argument [`TypeId`]s it takes
+/// * its return [`TypeId`]
+pub struct TraitFunction {
+
+    /// Function name, as a reference to a static string. Mainly
+    /// used to give user the ability to choose the function they
+    /// want to use
+    pub name: &'static str,
+
+    /// Function ID, used to call this function
+    ///
+    /// **Should always be the same for same functions in the newer
+    /// releases, unless a new plugin version is submitted**
+    pub number: u64,
+
+    /// Function ID, used to call this function
+    ///
+    /// **Should always be the same for same functions in the newer
+    /// releases, unless a new plugin version is submitted**
+    pub trait_number: u64,
+
+    /// A vector of function parameter definitions, as objects 
+    /// of type [`Parameter`]
+    ///
+    /// This field contains all information, compiler needs to 
+    /// know about argument amount, types and keywords in case
+    /// 
+    pub parameters: Vec<Parameter>,
+
+    /// The [`TypeId`] of the returned [`Any`] trait implementor
+    ///
+    /// See [`std::any::Any`] documentation to find out more about
+    /// storing an [`Any`] trait implementor and getting back
+    /// from a [`Box<dyn Any>`]
+    pub return_type: TypeId,
+
+    /// Bool that identifyes whether or not should the compiler
+    /// ignore argument types, and just hand them over to the
+    /// function as is.
+    ///
+    /// In this case, the keywords will not be checked, so all
+    /// keyword arguments will be provided as objects of type
+    /// [`Kwarg`]
+    /// 
+    /// If the function might take different arguments in different
+    /// situations, or even have unlimited amount of arguments,
+    /// sometimes it is easier to make one function that would
+    /// parse the arguments and decide how to deal with them. For 
+    /// such function, compiler will not check the argument types
+    /// nor amount of them.
+    pub no_check_args: bool,
+
+    /// If the function can not work without some optional
+    /// interplug requests fulfilled, they must be included in
+    /// this field when providing the function to the
+    /// program that is using the plugin, so it knows if this
+    /// function is available in the current setup or not.
+    pub dependencies: Option<Vec<InterplugRequest>>,
+}
+
+impl Default for TraitFunction {
+    fn default () -> TraitFunction {
+        TraitFunction {
+            name: "",
+            number: 0,
+            trait_number: 0,
             parameters: Vec::new(),
             return_type: TypeId::of::<u8>(),
             no_check_args: false,
