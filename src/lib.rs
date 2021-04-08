@@ -1,3 +1,20 @@
+// Plugin API used in Dusk project
+//
+// Copyright (C) 2021 by Andy Gozas <andy@gozas.me>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 //! Crate, that is used while building a plugin system as a common
 //! dependency by both plugin and plugin user to define the plugin
 //! behavior and safely import and use the plugin
@@ -47,37 +64,83 @@ pub static API_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// ```
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
-/// A macro, which can be used to make exporting of a struct
-/// easier
-/// FIXME
+/// A structure that holds a representation of plugin version
+/// for easy comparing and storing.
 ///
-/// # Example
+/// The ordering is as follows
 ///
-/// ```
-/// dusk_api::export_plugin!("test", "0.1.0", MyFreight);
+/// * Major
+/// * Minor
+/// * Release
+/// * Build
 ///
-/// pub struct MyFreight;
-///
-/// impl Freight for MyFreight {
-///     // Your implementation here
-/// }
-/// ```
-#[macro_export]
-macro_rules! export_plugin {
-    ($name: expr, $version: expr, $freight: ident) => {
-        $crate::register_freight!($freight, freight_registry_function);
-        $crate::export_freight!($name, $version, freight_registry_function);
-    };
-    ($name: expr, $version: expr, $back_version: expr, $freight: ident) => {
-        $crate::register_freight!($freight, freight_registry_function);
-        $crate::export_freight!($name, $version, $back_version, freight_registry_function);
-    };
+/// e.g in 1.2.3.4, 1 is major, 2 is minor, 3 is release and 4 
+/// is build
+#[derive(Clone)]
+pub struct Version {
+    pub major: usize,
+    pub minor: usize,
+    pub release: usize,
+    pub build: usize,
 }
 
-/// A macro, which must be used for exporting a struct.
+impl Default for Version {
+    fn default () -> Version {
+        Version {
+            major: 0,
+            minor: 0,
+            release: 0,
+            build: 0,
+        }
+    }
+}
+
+/// A structure, exported by plugin, containing some package details
+/// and register function
 ///
-/// Every export must be done using this macro, to make sure
-/// the plugin is compatible with the program using it
+/// This structure contains the rust compiler version, the plugin was
+/// compiled with, api version it uses, the plugin name and version
+/// and the actual function, that is used to register the plugin.
+///
+/// The function is only needed to pass a structure, that implements
+/// trait Freight to the [`FreightRegistrar::register_freight`] as
+/// structures can not be put into static variables, but static
+/// functions can.
+///
+/// This structure must only be built by [`export_freight!`] macro
+/// in plugins. And its fields are only read by
+/// [`FreightProxy::load`] function when loading the plugin
+pub struct FreightDeclaration {
+
+    /// Rust compiler version as a static string
+    pub rustc_version: &'static str,
+
+    /// Api version as a static string
+    pub api_version: &'static str,
+
+    /// Version of the freight being imported
+    pub freight_version: Version,
+    
+    /// The earliest plugin version, for which the code could have 
+    /// been designed, and still be run with this version
+    /// of plugin, with same results
+    pub backwards_compat_version: Version,
+
+    /// Name of the freight being imported
+    pub name: &'static str,
+
+    /// Function that gets a [`FreightRegistrar`] trait implementor
+    /// as an argument and calls its freight_register function
+    /// to provide unexportable things, such as structs, in
+    /// particular, [`Freight`] implementor structures
+    pub register: fn (&mut dyn FreightRegistrar),
+}
+
+/// A macro, which **MUST** be used for exporting a struct.
+///
+/// Every export must be done using this macro, or it's 
+/// wrapper [`export_plugin`] to make sure the plugin is 
+/// compatible with the program using it
 ///
 /// To learn more about structure, required to register the
 /// plugins behavior, see [`Freight`] trait documentation
@@ -85,11 +148,37 @@ macro_rules! export_plugin {
 /// To learn how to do the same job easier automatically
 /// see [`register_freight!`] macro documentation and
 /// [`export_plugin!`] macro documentation
-/// FIXME
 ///
 /// # Example
 /// ```
-/// dusk_api::export_freight!("test", "0.1.0", register);
+/// dusk_api::export_freight!(
+///     "test",
+///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     register);
+///
+/// pub fn register (registrar: &mut dyn FreightRegistrar) {
+///     registrar.register_freight(Box::new(MyFreight));
+/// }
+///
+/// pub struct MyFreight;
+///
+/// impl Freight for MyFreight {
+///     // Your implementation here
+/// }
+/// ```
+///
+/// If you want to also specify the backwards compatibility
+/// version, you should use the same macro with four 
+/// arguments, inserting backwards compatibility version
+/// right after the plugin version
+///
+/// # Example
+/// ```
+/// dusk_api::export_freight!(
+///     "test",
+///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     Version {major: 0, minor: 6, ..Default::default() }, 
+///     register);
 ///
 /// pub fn register (registrar: &mut dyn FreightRegistrar) {
 ///     registrar.register_freight(Box::new(MyFreight));
@@ -132,14 +221,17 @@ macro_rules! export_freight {
 }
 
 /// A macro, which can be used to create a registry function
-/// easier
+/// for your freight easier
 ///
 /// # Example
 ///
-///FIXME
 /// ```
 /// dusk_api::register_freight!(MyFreight, my_reg_fn);
-/// dusk_api::export_freight!("test", "0.1.0", my_reg_fn);
+/// dusk_api::export_freight!(
+///     "test",
+///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     Version {major: 0, minor: 6, ..Default::default() }, 
+///     register);
 ///
 /// pub struct MyFreight;
 ///
@@ -157,7 +249,65 @@ macro_rules! register_freight {
     };
 }
 
+/// A macro, which can be used to make exporting of a struct
+/// easier 
+///
+/// Can be used both with and without the backwards
+/// compatibility version argument (for more info see
+/// [`export_freight!`]
+///
+/// # Example
+///
+/// ```
+/// dusk_api::export_plugin!(
+///     "test",
+///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     register);
+///
+/// pub struct MyFreight;
+///
+/// impl Freight for MyFreight {
+///     // Your implementation here
+/// }
+/// ```
+///
+/// With backwards compatibility version:
+///
+/// # Example
+///
+/// ```
+/// dusk_api::export_plugin!(
+///     "test",
+///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     Version {major: 0, minor: 6, ..Default::default() }, 
+///     register);
+///
+/// pub struct MyFreight;
+///
+/// impl Freight for MyFreight {
+///     // Your implementation here
+/// }
+/// ```
+#[macro_export]
+macro_rules! export_plugin {
+    ($name: expr, $version: expr, $freight: ident) => {
+        $crate::register_freight!($freight, freight_registry_function);
+        $crate::export_freight!($name, $version, freight_registry_function);
+    };
+    ($name: expr, $version: expr, $back_version: expr, $freight: ident) => {
+        $crate::register_freight!($freight, freight_registry_function);
+        $crate::export_freight!($name, $version, $back_version, freight_registry_function);
+    };
+}
+
 /// A macro, that makes plugin importing a little bit easier
+///
+/// # Safety
+///
+/// This macro is **UNSAFE** as it **CAN NOT** check whether
+/// the plugin has beed exported correctly or not, and 
+/// using it on a plugin that is in any way corrupted might
+/// lead to segmentation fault or undefined behavior
 ///
 /// # Example
 ///
@@ -200,27 +350,39 @@ pub enum DuskError {
     ///     })
     /// }
     /// ```
+    
+    /// Just pass a message, no error types applicable
     Message { msg: &'static str },
 
-    RuntimeError { msg: &'static str },
-
+    /// An argument of wrong type received
     TypeError { msg: &'static str },
 
+    /// An argument of wrong value was received
     ValueError { msg: &'static str },
 
+    /// An OS error occured
     OsError { msg: &'static str },
 
+    /// At some point some value check failed
     AssertionError { msg: &'static str },
 
+    /// Index out of bounds
     IndexError { msg: &'static str },
 
+    /// Code is trying to divide by zero
     ZeroDivisionError { msg: &'static str },
 
+    /// Out of memory
     OverflowError { msg: &'static str },
 
+    /// Plugin import failed
     ImportError { msg: &'static str },
 
+    /// Called function is not implemented
     NotImplementedError { msg: &'static str },
+
+    /// Other error occured during runtime
+    RuntimeError { msg: &'static str },
 }
 
 /// Enum, that represents an interplugin request and either contains
@@ -244,15 +406,43 @@ pub enum DuskError {
 /// the dependencies, when seeing this request finds out that
 /// the plugin that was requested was already loaded earlier,
 /// so it might as well provide it to the requesting plugin.
-/// FIXME
+#[derive(Clone)]
 pub enum InterplugRequest {
 
+    /// Request for a specific plugin with a specific version
+    /// and name, and make sure the functions with ids provided
+    /// have all dependencies fulfilled
     PlugRequest {
+        plugin: &'static str,
+        fn_ids: Vec<usize>,
+        version: Version,
+    },
+
+    /// Request for any implementor of a specific trait from
+    /// a specific plugin with a specific version, and make 
+    /// sure the functions with ids provided have all 
+    /// dependencies fulfilled (function IDs are local trait 
+    /// IDs -- not global IDs)
+    TraitRequest {
+        plugin: &'static str,
+        trait_name: &'static str,
+        fn_ids: Vec<usize>,
+        version: Version,
+    },
+
+    /// Request for a specific plugin with a specific version
+    /// and name, and make sure all of it's functions have
+    /// their dependencies fulfilled
+    PlugRequestAll {
         plugin: &'static str,
         version: Version,
     },
 
-    TraitRequest {
+    /// Request for any implementor of a specific trait from
+    /// a specific plugin with a specific version, and make 
+    /// sure all of it's functions have their dependencies 
+    /// fulfilled
+    TraitRequestAll {
         plugin: &'static str,
         trait_name: &'static str,
         version: Version,
@@ -300,6 +490,7 @@ pub enum InterplugRequest {
 /// about the amount of threads anymore, and lets the plugin decide
 /// by itself which amount it wants to use, it can send a
 /// [`Limitation::Reset`] to it.
+#[derive(Clone)]
 pub enum Limitation {
 
     /// Set the maximum allowed number, represetting some setting
@@ -321,89 +512,12 @@ pub enum Limitation {
     },
 }
 
-pub struct TraitDefinition {
-
-    pub name: &'static str,
-
-    pub methods: Vec<Function>,
-}
-
-pub struct TraitImplementation {
-
-    pub name: &'static str,
-
-    pub methods: Vec<TraitFunction>,
-}
-
-pub struct TraitProxy {
-    
-    pub trait_name: &'static str,
-
-    pub freight_proxy: std::rc::Rc<FreightProxy>,
-
-    pub function_links: Vec<usize>,
-}
-
-
-/// Structure representing main characteristics of an object type
-/// needed for the program, using the plugin, that either imports
-/// or defines this type in case this type is not present in
-/// the user program itself
-///
-/// A Type object contains
-/// * type name, used for identifying this type
-/// * its [`TypeId`] for Any trait to work properly
-/// * its methods
-/// * functions needed to access its fields
-pub struct Type {
-
-    /// Name for the [`TypeId`] owner to be reffered to as a static
-    /// string
-    pub name: &'static str,
-
-    /// If an object of this type should have some functions, that
-    /// can be called on it, they should be provided here. The 
-    /// functions provided here should be called using the same
-    /// [`Freight::call_function`] function, so they should
-    /// all have unique numbers
-    pub methods : Option<Vec<Function>>,
-
-    /// All fields of an object of this type, user needs to be able
-    /// to access, should be located here. The field name then
-    /// will be the function name, function's return type is the 
-    /// field type and the only argument of the function should 
-    /// be of the type, the field is owned by. These functions
-    /// are, once again, called by the same [`Freight::call_function`]
-    /// function and should all have unique numbers over all functions
-    /// called by [`Freight::call_function`]
-    pub fields : Option<Vec<Function>>,
-
-    pub trait_implementations : Option<Vec<TraitImplementation>>,
-
-    /// [`TypeId`] object, gotten from the structure, being
-    /// provided to the program, that is using the plugin
-    ///
-    /// See [`std::any::TypeId`] documentation to find out how
-    /// to get a type id of a type
-    pub type_id: TypeId,
-}
-
-pub struct Module {
-
-    pub types: Vec<Type>,
-
-    pub functions: Vec<Function>,
-
-    pub submodules: Vec<Module>,
-
-    pub trait_definitions: Vec<TraitDefinition>,
-}
-
 /// A structure, that contains all information, the compiler needs to
 /// know about function parameters.
 ///
 /// The only required field is arg_type, but there are some optional
 /// fields you might want to use.
+#[derive(Clone)]
 pub struct Parameter {
 
     /// The argument type, as it's [`TypeId`]
@@ -411,12 +525,23 @@ pub struct Parameter {
     /// Always required
     pub arg_type: TypeId,
 
+    /// Argument can be of any type, don't check TypeId
+    ///
+    /// Default: false
+    pub any_type: bool,
+
+    /// If any type is set to true, check if the type
+    /// has some traits implemented
+    pub implements: Option<Vec<InterplugRequest>>,
+
     /// Allow to change the value of the argument
     ///
     /// *NOTE* Can only be used with arguments with no 
     /// default value and allow_multiple set to false
     pub mutable: bool,
 
+    /// Forbid for this parameter to be set with a 
+    /// positional arg instead of keyword arg
     pub keyword_only: bool,
 
     /// If you want to add ability to set the parameter, using a 
@@ -429,7 +554,7 @@ pub struct Parameter {
     /// it's default value to Some
     ///
     /// Default value is [`None`]
-    pub default_value: Option<Box<dyn Any>>,
+    pub default_value: Option<&'static Box<dyn Any>>,
 
     /// If you want the user to be able to pass multiple arguments
     /// with one keyword or just multiple positon arguments, you
@@ -457,13 +582,14 @@ pub struct Parameter {
     ///
     /// Default value is 0
     pub max_amount: usize,
-
 }
 
-impl Default for Parameter {//FIXME
+impl Default for Parameter {
     fn default () -> Parameter {
         Parameter {
             arg_type: TypeId::of::<u8>(),
+            any_type: false,
+            implements: None,
             mutable: false,
             keyword_only: false,
             keyword: None,
@@ -474,11 +600,180 @@ impl Default for Parameter {//FIXME
     }
 }
 
+/// The struct that represents a keyword argument if it is passed
+/// to the function with no_check_args set to true
 pub struct Kwarg {
 
+    /// The keyword
     pub keyword: &'static str,
 
-    pub value: Box<dyn Any>,
+    /// The actual argument value
+    pub value: &'static mut Box<dyn Any>,
+}
+
+/// A trait that defines the behavior of a function wrapper, used
+/// to call functions imported from plugins
+pub trait DuskCallable: CallableClone {
+    
+    /// The function that takes arguments, processes them and any
+    /// data that is stored in the implementor struct and calls
+    /// the underlying function, returning it's result
+    fn call (
+        self: &mut Self,
+        args: &Vec<&mut Box<dyn Any>>
+        ) -> Result<Box<dyn Any>, DuskError>;
+}
+
+pub trait CallableClone {
+    fn clone_box (self: &Self) -> Box<dyn DuskCallable>;
+}
+
+impl <T> CallableClone for T
+where
+    T: 'static + DuskCallable + Clone
+{
+    fn clone_box (self: &Self) -> Box<dyn DuskCallable> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn DuskCallable> {
+    fn clone (self: &Self) -> Box<dyn DuskCallable> {
+        self.clone_box()
+    }
+}
+
+/// Simplest Dusk callable implementor -- only contains one function
+/// that gets the argument vector as an argument and simply passes
+/// the arguments and returned Result
+#[derive(Clone)]
+pub struct SimpleCallable {
+    underlying_fn: 
+        fn (&Vec<&mut Box<dyn Any>>) 
+            -> Result<Box<dyn Any>, DuskError>,
+}
+
+impl DuskCallable for SimpleCallable {
+    fn call (
+        self: &mut Self,
+        args: &Vec<&mut Box<dyn Any>>
+        ) -> Result<Box<dyn Any>, DuskError> {
+
+        (self.underlying_fn)(args)
+    }
+}
+
+/// Dusk callable that not only holds a function pointer, but
+/// also a vector of args to pass to the underlying function
+/// as well as the arguments provided to the call function
+#[derive(Clone)]
+pub struct ConstArgsCallable {
+    const_args: &'static Vec<&'static Box<dyn Any>>,
+    underlying_fn: 
+        fn (
+            &Vec<&Box<dyn Any>>, 
+            &Vec<&mut Box<dyn Any>>,
+        ) -> Result<Box<dyn Any>, DuskError>,
+}
+
+impl DuskCallable for ConstArgsCallable {
+    fn call (
+        self: &mut Self,
+        args: &Vec<&mut Box<dyn Any>>
+        ) -> Result<Box<dyn Any>, DuskError> {
+
+        (self.underlying_fn)(&self.const_args.clone(), args)
+    }
+}
+
+/// A default callable: does not call anything, always returns
+/// [`DuskError::NotImplementedError`]
+#[derive(Clone)]
+pub struct EmptyCallable;
+
+impl DuskCallable for EmptyCallable {
+    fn call (
+        self: &mut Self,
+        _args: &Vec<&mut Box<dyn Any>>
+        ) -> Result<Box<dyn Any>, DuskError> {
+
+        Err(DuskError::NotImplementedError {
+            msg: "Called function is not implemented"
+        })
+    }
+}
+
+
+/// Structure that holds all the characteristics of a trait 
+/// function that need to be known when actually implementing
+/// it or importing its implementor.
+///
+/// A TraitFunctionDefinition object contains
+/// * function name
+/// * its trait id number that identifies it's place in the trait
+/// implementation function Vector
+/// * vector of parameter descriptions of the parameters 
+/// ([`Parameter`])
+/// * its return [`TypeId`]
+/// * whether or not the arguments should be checked or just passed 
+/// as is
+#[derive(Clone)]
+pub struct TraitFunctionDefinition {
+
+    /// Function name, as a reference to a static string. Mainly
+    /// used to give user the ability to choose the function they
+    /// want to use
+    pub name: &'static str,
+
+    /// Function ID, used to find this function in the trait 
+    /// implementation function vector
+    ///
+    /// **Should always be the same for same functions in the newer
+    /// releases, unless a new plugin version is submitted**
+    pub fn_trait_id: u64,
+
+    /// A vector of function parameter definitions, as objects 
+    /// of type [`Parameter`]
+    ///
+    /// This field contains all information, compiler needs to 
+    /// know about argument amount, types and keywords in case
+    /// 
+    pub parameters: Vec<Parameter>,
+
+    /// The [`TypeId`] of the returned [`Any`] trait implementor
+    ///
+    /// See [`std::any::Any`] documentation to find out more about
+    /// storing an [`Any`] trait implementor and getting back
+    /// from a [`Box<dyn Any>`]
+    pub return_type: TypeId,
+
+    /// Bool that identifyes whether or not should the compiler
+    /// ignore argument types, and just hand them over to the
+    /// function as is.
+    ///
+    /// In this case, the keywords will not be checked, so all
+    /// keyword arguments will be provided as objects of type
+    /// [`Kwarg`]
+    /// 
+    /// If the function might take different arguments in different
+    /// situations, or even have unlimited amount of arguments,
+    /// sometimes it is easier to make one function that would
+    /// parse the arguments and decide how to deal with them. For 
+    /// such function, compiler will not check the argument types
+    /// nor amount of them.
+    pub no_check_args: bool,
+}
+
+impl Default for TraitFunctionDefinition {
+    fn default () -> TraitFunctionDefinition {
+        TraitFunctionDefinition {
+            name: "",
+            fn_trait_id: 0,
+            parameters: Vec::new(),
+            return_type: TypeId::of::<u8>(),
+            no_check_args: false,
+        }
+    }
 }
 
 /// Structure representing main characteristics of a function needed
@@ -486,10 +781,17 @@ pub struct Kwarg {
 ///
 /// A Function object contains
 /// * function name
-/// * its id number to be used when calling the function
-/// FIXME
-/// * argument [`TypeId`]s it takes
+/// * a [`DuskCallable`] implementor to be used when calling the 
+/// function
+/// * its id number that identifies it's place in the main function
+/// Vector
+/// * vector of parameter descriptions of the parameters 
+/// ([`Parameter`])
 /// * its return [`TypeId`]
+/// * whether or not the arguments should be checked or just passed 
+/// as is
+/// * a vector of plugin dependencies this function has
+#[derive(Clone)]
 pub struct Function {
 
     /// Function name, as a reference to a static string. Mainly
@@ -497,11 +799,15 @@ pub struct Function {
     /// want to use
     pub name: &'static str,
 
-    /// Function ID, used to call this function
+    /// The callable that should be used when calling the function
+    pub callable: Box<dyn DuskCallable>,
+
+    /// Function ID, used to find this function in the main plugin
+    /// function vector
     ///
     /// **Should always be the same for same functions in the newer
     /// releases, unless a new plugin version is submitted**
-    pub number: u64,
+    pub fn_id: usize,
 
     /// A vector of function parameter definitions, as objects 
     /// of type [`Parameter`]
@@ -539,18 +845,19 @@ pub struct Function {
     /// this field when providing the function to the
     /// program that is using the plugin, so it knows if this
     /// function is available in the current setup or not.
-    pub dependencies: Option<Vec<InterplugRequest>>,
+    pub dependencies: Vec<InterplugRequest>,
 }
 
 impl Default for Function {
     fn default () -> Function {
         Function {
             name: "",
-            number: 0,
+            callable : Box::new(EmptyCallable{}),
+            fn_id: 0,
             parameters: Vec::new(),
             return_type: TypeId::of::<u8>(),
             no_check_args: false,
-            dependencies: None,
+            dependencies: Vec::new(),
         }
     }
 }
@@ -559,100 +866,157 @@ impl Default for Function {
 /// for the program using a plugin, which implements it
 ///
 /// A TraitFunction object contains
-/// * function name
-/// * its id number to be used when calling the function
 /// * its number in trait
-/// FIXME
-/// * argument [`TypeId`]s it takes
-/// * its return [`TypeId`]
+/// * the underlying function
+#[derive(Clone)]
 pub struct TraitFunction {
 
-    /// Function name, as a reference to a static string. Mainly
-    /// used to give user the ability to choose the function they
-    /// want to use
-    pub name: &'static str,
-
     /// Function ID, used to call this function
     ///
     /// **Should always be the same for same functions in the newer
     /// releases, unless a new plugin version is submitted**
-    pub number: u64,
+    pub fn_trait_id: u64,
 
-    /// Function ID, used to call this function
-    ///
-    /// **Should always be the same for same functions in the newer
-    /// releases, unless a new plugin version is submitted**
-    pub trait_number: u64,
-
-    /// A vector of function parameter definitions, as objects 
-    /// of type [`Parameter`]
-    ///
-    /// This field contains all information, compiler needs to 
-    /// know about argument amount, types and keywords in case
-    /// 
-    pub parameters: Vec<Parameter>,
-
-    /// The [`TypeId`] of the returned [`Any`] trait implementor
-    ///
-    /// See [`std::any::Any`] documentation to find out more about
-    /// storing an [`Any`] trait implementor and getting back
-    /// from a [`Box<dyn Any>`]
-    pub return_type: TypeId,
-
-    /// Bool that identifyes whether or not should the compiler
-    /// ignore argument types, and just hand them over to the
-    /// function as is.
-    ///
-    /// In this case, the keywords will not be checked, so all
-    /// keyword arguments will be provided as objects of type
-    /// [`Kwarg`]
-    /// 
-    /// If the function might take different arguments in different
-    /// situations, or even have unlimited amount of arguments,
-    /// sometimes it is easier to make one function that would
-    /// parse the arguments and decide how to deal with them. For 
-    /// such function, compiler will not check the argument types
-    /// nor amount of them.
-    pub no_check_args: bool,
-
-    /// If the function can not work without some optional
-    /// interplug requests fulfilled, they must be included in
-    /// this field when providing the function to the
-    /// program that is using the plugin, so it knows if this
-    /// function is available in the current setup or not.
-    pub dependencies: Option<Vec<InterplugRequest>>,
+    /// The underlying function that contains everything else
+    /// you need to know
+    pub function: Function,
 }
 
 impl Default for TraitFunction {
     fn default () -> TraitFunction {
         TraitFunction {
+            fn_trait_id: 0,
+            function: Default::default(),
+        }
+    }
+}
+
+/// A trait definition, that contains the defined trait's name
+/// and a vector of definitions of it's functions
+#[derive(Clone)]
+pub struct TraitDefinition {
+
+    /// The trait's name
+    pub name: &'static str,
+
+    /// The method definitions
+    pub methods: Vec<TraitFunctionDefinition>,
+}
+
+/// A trait implementation, that contains name of the trait
+/// being implemented and a vector of the trait method
+/// implementations
+#[derive(Clone)]
+pub struct TraitImplementation {
+
+    /// Trait name (containing full path to it in the plugin
+    /// where it came from)
+    pub name: &'static str,
+
+    /// Methods being implemented
+    pub methods: Vec<TraitFunction>,
+}
+
+/// Structure representing main characteristics of an object type
+/// needed for the program, using the plugin, that either imports
+/// or defines this type in case this type is not present in
+/// the user program itself
+///
+/// A Type object contains
+/// * type name, used for identifying this type
+/// * its [`TypeId`] for Any trait to work properly
+/// * its methods
+/// * trait implementations for this type
+/// * functions needed to access its fields
+#[derive(Clone)]
+pub struct Type {
+
+    /// Name for the [`TypeId`] owner to be reffered to as a static
+    /// string
+    pub name: &'static str,
+
+    /// The **INTERNAL** id for the type, representing the position
+    /// of the type in the type vector, **NOT** the native [`TypeId`]**
+    pub tp_id: usize,
+
+    /// If an object of this type should have some functions, that
+    /// can be called on it, they should be provided here. The 
+    /// functions provided here should be called using the same
+    /// [`Freight::call_function`] function, so they should
+    /// all have unique numbers
+    pub methods : Vec<Function>,
+
+    /// All fields of an object of this type, user needs to be able
+    /// to access, should be located here. The field name then
+    /// will be the function name, function's return type is the 
+    /// field type and the only argument of the function should 
+    /// be of the type, the field is owned by. These functions
+    /// are, once again, called by the same [`Freight::call_function`]
+    /// function and should all have unique numbers over all functions
+    /// called by [`Freight::call_function`]
+    pub fields : Vec<Function>,
+
+    /// All the traits that are implemented for this type
+    pub trait_implementations : Vec<TraitImplementation>,
+
+    /// [`TypeId`] object, gotten from the structure, being
+    /// provided to the program, that is using the plugin
+    ///
+    /// See [`std::any::TypeId`] documentation to find out how
+    /// to get a type id of a type
+    pub native_id: TypeId,
+}
+
+impl Default for Type {
+    fn default () -> Type {
+        Type {
             name: "",
-            number: 0,
-            trait_number: 0,
-            parameters: Vec::new(),
-            return_type: TypeId::of::<u8>(),
-            no_check_args: false,
-            dependencies: None,
+            tp_id: 0,
+            methods: Vec::new(),
+            fields: Vec::new(),
+            trait_implementations: Vec::new(),
+            native_id: TypeId::of::<u8>(),
         }
     }
 }
 
-pub struct Version {
-    pub major: usize,
-    pub minor: usize,
-    pub release: usize,
-    pub build: usize,
+/// A structure, that defines a module and may or may not contain
+/// types, functions, submodules, trait definitions and 
+/// constants
+#[derive(Clone)]
+pub struct Module {
+
+    /// The module name
+    pub name: &'static str,
+
+    /// A vector of types, presented in this module
+    pub types: Vec<Type>,
+
+    /// A vector of functions, implemented in this module 
+    /// (not including the functions that are used to 
+    /// get type fields and constants)
+    pub functions: Vec<Function>,
+
+    /// A vector of submodules, contained in this module
+    pub submodules: Vec<Module>,
+
+    /// A vector of trait definitions this module presents
+    pub trait_definitions: Vec<TraitDefinition>,
+
+    /// A vector of functions, that can be used to get some
+    /// constants, defined in this module
+    pub constants: Vec<Function>,
 }
 
-impl Default for Version {
-    fn default () -> Version {
-        Version {
-            major: 0,
-            minor: 0,
-            release: 0,
-            build: 0,
-        }
-    }
+/// TODO: trait proxy not perfect for the cause yet
+#[derive(Clone)]
+pub struct TraitProxy {
+    
+    pub trait_name: &'static str,
+
+    pub freight_proxy: std::rc::Rc<FreightProxy>,
+
+    pub function_links: Vec<usize>,
 }
 
 /// Trait, that defines the plugin behavior
@@ -668,44 +1032,8 @@ impl Default for Version {
 /// which matches the provided id.
 ///
 /// # Example
-/// ```
-/// pub struct Test;
-///
-/// impl Freight for Test {
-///     fn call_function (
-///         self: &mut Self,
-///         function_number: u64,
-///         mut args: Vec<&mut Box<dyn Any>>
-///         ) -> Result<Box<dyn Any>, DuskError> {
-///
-///         match function_number {
-///             0 => return Ok(Box::new(
-///                     args[0].downcast_mut::<String>()
-///                         .unwrap()
-///                         .clone())
-///                 ),
-///             _ => return Err(DuskError::Message{
-///                     msg: "bad fn number"
-///                 }),
-///         }
-///     }
-///
-///     fn get_function_list (self: &mut Self) -> Vec<Function> {
-///         let mut result: Vec<Function> = Vec::new();
-///         result.push(Function{
-///             name: "copy",
-///             number: 0,
-///             arg_types: vec![TypeId::of::<String>()],
-///             return_type: TypeId::of::<String>(),
-///         });
-///         return result;
-///     }
-///
-///     fn get_type_list (self: &mut Self) -> Vec<Type> {
-///         return Vec::new();
-///     }
-/// }
-/// ```
+/// TODO
+#[allow(unused_parens)]
 pub trait Freight {
 
     /// Function that is ran when importing the plugin, which
@@ -741,58 +1069,162 @@ pub trait Freight {
         _request: InterplugRequest,
         ) {}
 
-    /// Function that is used to provide information about
-    /// non standard types, a function from this plugin might take
-    /// as an argument or return, so that the program using the
-    /// plugin can take such non-standard objects from one
-    /// function implemented in this plugin and pass it on into
-    /// another function in this plugin
-    ///
-    /// To use it, just reimplement it to return a vector of
-    /// such [`Type`] structure descriptions
-    fn get_type_list (self: &mut Self) -> Vec<Type> {
-        Vec::new()
-    }
-
-    fn get_module_list (self: &mut Self) -> Vec<Module> {
-        Vec::new()
-    }
-
-    fn get_trait_list (self: &mut Self) -> Vec<TraitDefinition> {
-        Vec::new()
-    }
-
-    /// Function that is used to provide information about internal
-    /// functions of a plugin to the program using it, so it can
-    /// choose the function it needs either by its name, argument
-    /// types, return type or all of the above
-    fn get_function_list (self: &mut Self) -> Vec<Function>;
+    /// The function that is used to provide the main module / 
+    /// modules of the plugin. Any function, constant or type
+    /// are defined inside those modules
+    fn get_module_list (self: &mut Self) -> Vec<Module>;
     
-    /// Function that is used to provide information about internal
-    /// functions of a plugin that are named after binary operators
-    /// and should be treated as such. These functions have to 
-    /// always get exactly two arguments and they are called by the
-    /// same function that calls any function [`Freight::call_function`]
+    /// The function that is used to proveid the functions that
+    /// implement all the binary operators this plugin provides
     fn get_operator_list (self: &mut Self) -> Vec<Function> {
         Vec::new()
     }
-    
-    //FIXME
-    fn get_backwards_compatibility (self: &mut Self) -> Option<Version> {
-        None
-    }
 
-    /// Function that is used to call proxy the calls from the
-    /// outside of a plugin to the internal functions and must
-    /// implement function calling, by its number arguments,
-    /// contained inside of [`Vec<Box<dyn Any>>`] and must return
-    /// either a [`Box<dyn Any>`] representing  the returned value
-    /// or a [`DuskError`]
-    fn call_function (
-        self: &mut Self,
-        function_number: u64,
-        args: Vec<&mut Box<dyn Any>>
-        ) -> Result<Box<dyn Any>, DuskError>;
+    /// The function has to provide a vector of **ALL** functions
+    /// that this plugin holds **PLACED IN SUCH WAY THAT ID IS
+    /// EQUAL TO THE POSITION IN THE VECTOR** 
+    ///
+    /// **DO NOT REIMPLEMENT IT UNLESS YOU KNOW WHAT YOU ARE 
+    /// DOING**
+    ///
+    /// This vector should contain **ALL** functions from **ALL**
+    /// modules **AND ALL OF THEIR SUBMODULES**, including **ALL
+    /// OF THE TYPE METHODS AND FIELD FUNCTIONS**, 
+    /// **ALL FUNCTIONS USED FOR CONSTANTS** and including 
+    /// **ALL OF THE BINARY OPERATOR FUNCTIONS**
+    fn get_function_list (self: &mut Self) -> Vec<Function> {
+        let all_modules: Vec<Module> = self.get_module_list();
+        let mut parents: Vec<Module>;
+        let mut par_progress: Vec<usize>;
+        let mut result: Vec<Function> = Vec::new();
+        for module in all_modules {
+            parents = Vec::new();
+            par_progress = Vec::new();
+            parents.push(module.clone());
+            par_progress.push(0);
+            'par: while parents.len() > 0 {
+                if (*par_progress.last().unwrap() < 
+                    parents.last().unwrap().submodules.len()) {
+
+                    parents.push(parents.last().unwrap().submodules[
+                        *par_progress.last().unwrap()].clone());
+                    *par_progress.last_mut().unwrap() += 1;
+                    par_progress.push(0);
+                    continue 'par;
+                }
+                par_progress.pop();
+                'fun: for def_fun in &parents.last().unwrap().functions {
+                    if def_fun.fn_id < result.len() {
+                        result[def_fun.fn_id] = def_fun.clone();
+                        continue 'fun;
+                    }
+                    for _i in result.len()..def_fun.fn_id {
+                        result.push(Default::default());
+                    }
+                    result.push(def_fun.clone());
+                }
+                'con: for def_fun in &parents.last().unwrap().constants {
+                    if def_fun.fn_id < result.len() {
+                        result[def_fun.fn_id] = def_fun.clone();
+                        continue 'con;
+                    }
+                    for _i in result.len()..def_fun.fn_id {
+                        result.push(Default::default());
+                    }
+                    result.push(def_fun.clone());
+                }
+                for def_type in parents.pop().unwrap().types {
+                    'met: for def_met in def_type.methods {
+                        if def_met.fn_id < result.len() {
+                            result[def_met.fn_id] = def_met.clone();
+                            continue 'met;
+                        }
+                        for _i in result.len()..def_met.fn_id {
+                            result.push(Default::default());
+                        }
+                        result.push(def_met.clone());
+                    }
+                    'fil: for def_fil in def_type.fields {
+                        if def_fil.fn_id < result.len() {
+                            result[def_fil.fn_id] = def_fil.clone();
+                            continue 'fil;
+                        }
+                        for _i in result.len()..def_fil.fn_id {
+                            result.push(Default::default());
+                        }
+                        result.push(def_fil.clone());
+                    }
+                    for def_trt in def_type.trait_implementations {
+                        'trtmet: for def_met in def_trt.methods {
+                            if def_met.function.fn_id < result.len() {
+                                result[def_met.function.fn_id] = def_met.function.clone();
+                                continue 'trtmet;
+                            }
+                            for _i in result.len()..def_met.function.fn_id {
+                                result.push(Default::default());
+                            }
+                            result.push(def_met.function.clone());
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+    
+    /// The function has to provide a vector of **ALL** types
+    /// that this plugin holds **PLACED IN SUCH WAY THAT ID IS
+    /// EQUAL TO THE POSITION IN THE VECTOR** 
+    ///
+    /// **DO NOT REIMPLEMENT IT UNLESS YOU KNOW WHAT YOU ARE 
+    /// DOING**
+    ///
+    /// This vector should contain **ALL** types from **ALL**
+    /// modules **AND ALL OF THEIR SUBMODULES**
+    fn get_type_list (self: &mut Self) -> Vec<Type> {
+        let all_modules: Vec<Module> = self.get_module_list();
+        let mut parents: Vec<Module>;
+        let mut par_progress: Vec<usize>;
+        let mut result: Vec<Type> = Vec::new();
+        for module in all_modules {
+            parents = Vec::new();
+            par_progress = Vec::new();
+            parents.push(module.clone());
+            par_progress.push(0);
+            'par: while parents.len() > 0 {
+                if (*par_progress.last().unwrap() < 
+                    parents.last().unwrap().submodules.len()) {
+
+                    parents.push(parents.last().unwrap().submodules[
+                        *par_progress.last().unwrap()].clone());
+                    *par_progress.last_mut().unwrap() += 1;
+                    par_progress.push(0);
+                    continue 'par;
+                }
+                par_progress.pop();
+                'typ: for def_type in parents.pop().unwrap().types {
+                    if def_type.tp_id < result.len() {
+                        result[def_type.tp_id] = def_type.clone();
+                        continue 'typ;
+                    }
+                    for _i in result.len()..def_type.tp_id {
+                        result.push(Default::default());
+                    }
+                    result.push(def_type.clone());
+                }
+            }
+        }
+        return result;
+    }
+}
+
+/// Structure representing an empty [`Freight`] implementor, needed
+/// only for [`FreightProxy`] configuration
+pub struct EmptyFreight;
+impl Freight for EmptyFreight {
+    fn get_module_list (self: &mut Self) -> Vec<Module> {
+        Vec::new()
+    }
 }
 
 /// Trait to be implemented on structs, which are used to register
@@ -814,46 +1246,6 @@ pub trait FreightRegistrar {
         self: &mut Self,
         freight: Box<dyn Freight>,
         );
-}
-
-/// A structure, exported by plugin, containing some package details
-/// and register function
-///
-/// This structure contains the rust compiler version, the plugin was
-/// compiled with, api version it uses, the plugin name and version
-/// and the actual function, that is used to register the plugin.
-///
-/// The function is only needed to pass a structure, that implements
-/// trait Freight to the [`FreightRegistrar::register_freight`] as
-/// structures can not be put into static variables, but static
-/// functions can.
-///
-/// This structure must only be built by [`export_freight!`] macro
-/// in plugins. And its fields are only read by
-/// [`FreightProxy::load`] function when loading the plugin
-pub struct FreightDeclaration {
-
-    /// Rust compiler version as a static string
-    pub rustc_version: &'static str,
-
-    /// Api version as a static string
-    pub api_version: &'static str,
-
-    /// Version of the freight being imported
-    pub freight_version: Version,
-    
-    /// The earliest version, for which the code was designed, this
-    /// code can safely be run with the new plugin version
-    pub backwards_compat_version: Version,
-
-    /// Name of the freight being imported
-    pub name: &'static str,
-
-    /// Function that gets a [`FreightRegistrar`] trait implementor
-    /// as an argument and calls its freight_register function
-    /// to provide unexportable things, such as structs, in
-    /// particular, [`Freight`] implementor structures
-    pub register: fn (&mut dyn FreightRegistrar),
 }
 
 /// A structure, that contains a Freight object and is used to import
@@ -897,26 +1289,6 @@ pub struct FreightProxy {
     /// The earliest version, for which the code was designed, this
     /// code can safely be run with the new plugin version
     pub backwards_compat_version: Version,
-}
-
-/// Structure representing an empty [`Freight`] implementor, needed
-/// only for [`FreightProxy`] configuration
-pub struct EmptyFreight;
-impl Freight for EmptyFreight {
-    fn call_function (
-        self: &mut Self,
-        _function_number: u64,
-        _args: Vec<&mut Box<dyn Any>>
-        ) -> Result<Box<dyn Any>, DuskError> {
-
-        Err(DuskError::Message{
-            msg: "You can't call an empty freight"
-        })
-    }
-
-    fn get_function_list (self: &mut Self) -> Vec<Function> {
-        Vec::new()
-    }
 }
 
 /// Functions, needed to configure [`FreightProxy`] structure
@@ -977,16 +1349,6 @@ impl FreightProxy {
 // can call exact same functions from it
 impl Freight for FreightProxy {
 
-    // Proxy function, that takes everything needed to call a function
-    // and passes it on to the freight inside
-    fn call_function (
-        self: &mut Self,
-        function_number: u64,
-        args: Vec<&mut Box<dyn Any>>
-        ) -> Result<Box<dyn Any>, DuskError> {
-        self.freight.call_function(function_number, args)
-    }
-
     // Proxy function, that calls the internal freights init function
     // and returns its plugin dependencies
     fn init (self: &mut Self, limitations: &Option<Vec<Limitation>>)
@@ -1019,30 +1381,8 @@ impl Freight for FreightProxy {
         self.freight.interplug_deny(request);
     }
 
-    // Proxy function, that calls the function that gets function
-    // list from the inside freight and returns the result
-    fn get_function_list (self: &mut Self) -> Vec<Function> {
-        self.freight.get_function_list()
-    }
-
-    // Proxy function, that calls the function that gets the backwards
-    // compatibility version limit
-    fn get_backwards_compatibility (self: &mut Self) -> Option<Version> {
-        self.freight.get_backwards_compatibility()
-    }
-
-    // Proxy function, that calls the function that gets type
-    // list from the inside freight and returns the result
-    fn get_type_list (self: &mut Self) -> Vec<Type> {
-        self.freight.get_type_list()
-    }
-
     fn get_module_list (self: &mut Self) -> Vec<Module> {
         self.freight.get_module_list()
-    }
-
-    fn get_trait_list (self: &mut Self) -> Vec<TraitDefinition> {
-        self.freight.get_trait_list()
     }
 }
 
