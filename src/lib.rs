@@ -15,6 +15,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#![deny(warnings)]
+
+#![allow(unused_parens)]
+
+#![warn(unreachable_pub)]
+#![warn(unused_crate_dependencies)]
+#![warn(unused_extern_crates)]
+#![warn(missing_copy_implementations)]
+//#![warn(missing_debug_implementations)]
+#![warn(variant_size_differences)]
+#![warn(keyword_idents)]
+#![warn(anonymous_parameters)]
+
+#![warn(missing_abi)]
+
+#![warn(meta_variable_misuse)]
+#![warn(semicolon_in_expressions_from_macros)]
+#![warn(absolute_paths_not_starting_with_crate)]
+
+#![warn(missing_crate_level_docs)]
+#![warn(missing_docs)]
+#![warn(missing_doc_code_examples)]
+
+#![warn(elided_lifetimes_in_paths)]
+#![warn(explicit_outlives_requirements)]
+#![warn(invalid_html_tags)]
+#![warn(non_ascii_idents)]
+#![warn(pointer_structural_match)]
+#![warn(private_doc_tests)]
+#![warn(single_use_lifetimes)]
+#![warn(unaligned_references)]
+
 //! Crate, that is used while building a plugin system as a common
 //! dependency by both plugin and plugin user to define the plugin
 //! behavior and safely import and use the plugin
@@ -30,6 +62,8 @@
 //! documentation
 
 use std::any::{Any, TypeId};
+
+pub mod changelog;
 
 /// Api version parameter, passed from the build script.
 ///
@@ -76,11 +110,19 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 ///
 /// e.g in 1.2.3.4, 1 is major, 2 is minor, 3 is release and 4 
 /// is build
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct Version {
+
+    /// Major version number
     pub major: usize,
+
+    /// Minor version number
     pub minor: usize,
+    
+    /// Release version number
     pub release: usize,
+
+    /// Build version number
     pub build: usize,
 }
 
@@ -110,6 +152,7 @@ impl Default for Version {
 /// This structure must only be built by [`export_freight!`] macro
 /// in plugins. And its fields are only read by
 /// [`FreightProxy::load`] function when loading the plugin
+#[derive(Copy, Clone)]
 pub struct FreightDeclaration {
 
     /// Rust compiler version as a static string
@@ -345,44 +388,44 @@ pub enum DuskError {
     ///     _function_number: u64,
     ///     _args: Vec<&mut Box<dyn Any>>
     ///     ) -> Result<Box<dyn Any>, DuskError> {
-    ///     Err(DuskError::Message{
-    ///         msg: "You can't call an empty freight"
-    ///     })
+    ///     Err(DuskError::RuntimeError (
+    ///         "You can't call an empty freight"
+    ///     ))
     /// }
     /// ```
+
+    /// Plugin library loading failed
+    LoadingError (libloading::Error),
     
-    /// Just pass a message, no error types applicable
-    Message { msg: &'static str },
+    /// Plugin import failed
+    ImportError (&'static str),
 
     /// An argument of wrong type received
-    TypeError { msg: &'static str },
+    TypeError (&'static str),
 
     /// An argument of wrong value was received
-    ValueError { msg: &'static str },
+    ValueError (&'static str),
 
     /// An OS error occured
-    OsError { msg: &'static str },
+    OsError (&'static str),
 
     /// At some point some value check failed
-    AssertionError { msg: &'static str },
+    AssertionError (&'static str),
 
     /// Index out of bounds
-    IndexError { msg: &'static str },
+    IndexError (&'static str),
 
     /// Code is trying to divide by zero
-    ZeroDivisionError { msg: &'static str },
+    ZeroDivisionError (&'static str),
 
     /// Out of memory
-    OverflowError { msg: &'static str },
-
-    /// Plugin import failed
-    ImportError { msg: &'static str },
+    OverflowError (&'static str),
 
     /// Called function is not implemented
-    NotImplementedError { msg: &'static str },
+    NotImplementedError (&'static str),
 
     /// Other error occured during runtime
-    RuntimeError { msg: &'static str },
+    RuntimeError (&'static str),
 }
 
 /// Enum, that represents an interplugin request and either contains
@@ -413,8 +456,16 @@ pub enum InterplugRequest {
     /// and name, and make sure the functions with ids provided
     /// have all dependencies fulfilled
     PlugRequest {
+
+        /// The string, that identifies the plugin
         plugin: &'static str,
+
+        /// The list of function IDs that need their dependencies
+        /// fulfilled
         fn_ids: Vec<usize>,
+
+        /// The plugin version, with which the actuall version
+        /// has to at least be compatible
         version: Version,
     },
 
@@ -424,9 +475,20 @@ pub enum InterplugRequest {
     /// dependencies fulfilled (function IDs are local trait 
     /// IDs -- not global IDs)
     TraitRequest {
+
+        /// String that identifies the plugin, conataining the 
+        /// trait definition
         plugin: &'static str,
+
+        /// Trait name
         trait_name: &'static str,
+
+        /// In trait function IDs of the functions that need 
+        /// their dependencies fulfilled
         fn_ids: Vec<usize>,
+
+        /// The version of the plugin containing the trait 
+        /// definition
         version: Version,
     },
 
@@ -434,7 +496,12 @@ pub enum InterplugRequest {
     /// and name, and make sure all of it's functions have
     /// their dependencies fulfilled
     PlugRequestAll {
+        
+        /// The string, that identifies the plugin
         plugin: &'static str,
+
+        /// The plugin version, with which the actuall version
+        /// has to at least be compatible
         version: Version,
     },
 
@@ -443,28 +510,26 @@ pub enum InterplugRequest {
     /// sure all of it's functions have their dependencies 
     /// fulfilled
     TraitRequestAll {
+
+        /// String that identifies the plugin, conataining the 
+        /// trait definition
         plugin: &'static str,
+
+        /// Trait name
         trait_name: &'static str,
+
+        /// The version of the plugin containing the trait 
+        /// definition
         version: Version,
-    },
-
-    /// An interplug request that *MUST* be fulfilled in order
-    /// for the plugin to work at all
-    Crucial {
-        request: Box<InterplugRequest>,
-    },
-
-    /// An interplug request that must be fulfilled in order for
-    /// the plugin to fully work, which means that without it
-    /// some functions will be unavailable
-    Optional {
-        request: Box<InterplugRequest>,
     },
 
     /// An interlplug request that contains several interlplug
     /// requests, either of which *MUST* be fulfilled for the
     /// plugin to work at all
     Either {
+        
+        /// A vector of the requests, either of which has to 
+        /// be fulfilled
         requests: Vec<InterplugRequest>,
     },
 
@@ -472,7 +537,27 @@ pub enum InterplugRequest {
     /// requests, each of which *MUST* be fulfilled in order for
     /// the plugin to work
     Each {
+
+        /// A vector of the requests, all of which have to 
+        /// be fulfilled
         requests: Vec<InterplugRequest>,
+    },
+
+    /// An interplug request that *MUST* be fulfilled in order
+    /// for the plugin to work at all
+    Crucial {
+
+        /// A box, containing the actual request
+        request: Box<InterplugRequest>,
+    },
+
+    /// An interplug request that must be fulfilled in order for
+    /// the plugin to fully work, which means that without it
+    /// some functions will be unavailable
+    Optional {
+
+        /// A box, containing the actual request
+        request: Box<InterplugRequest>,
     },
 }
 
@@ -490,24 +575,34 @@ pub enum InterplugRequest {
 /// about the amount of threads anymore, and lets the plugin decide
 /// by itself which amount it wants to use, it can send a
 /// [`Limitation::Reset`] to it.
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub enum Limitation {
 
     /// Set the maximum allowed number, represetting some setting
     Top {
+
+        /// The name of the setting
         setting: &'static str,
+
+        /// The value to which we want to set it
         limit: isize,
     },
 
     /// Set the minimum allowed number, representing some setting
     Bottom {
+
+        /// The name of the setting
         setting: &'static str,
+
+        /// The value to which we want to set it
         limit: isize,
     },
 
     /// Reset the setting to default value (as if the main program
     /// has never set any value to the setting at all)
     Reset {
+
+        /// The name of the setting
         setting: &'static str,
     },
 }
@@ -624,7 +719,12 @@ pub trait DuskCallable: CallableClone {
         ) -> Result<Box<dyn Any>, DuskError>;
 }
 
+/// The trait, containing a function that clones the existing
+/// DuskCallable implementor
 pub trait CallableClone {
+
+    /// The function that returns a new box, of [`DuskCallable`]
+    /// implementor
     fn clone_box (self: &Self) -> Box<dyn DuskCallable>;
 }
 
@@ -646,7 +746,7 @@ impl Clone for Box<dyn DuskCallable> {
 /// Simplest Dusk callable implementor -- only contains one function
 /// that gets the argument vector as an argument and simply passes
 /// the arguments and returned Result
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct SimpleCallable {
     underlying_fn: 
         fn (&Vec<&mut Box<dyn Any>>) 
@@ -666,7 +766,7 @@ impl DuskCallable for SimpleCallable {
 /// Dusk callable that not only holds a function pointer, but
 /// also a vector of args to pass to the underlying function
 /// as well as the arguments provided to the call function
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct ConstArgsCallable {
     const_args: &'static Vec<&'static Box<dyn Any>>,
     underlying_fn: 
@@ -688,7 +788,7 @@ impl DuskCallable for ConstArgsCallable {
 
 /// A default callable: does not call anything, always returns
 /// [`DuskError::NotImplementedError`]
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct EmptyCallable;
 
 impl DuskCallable for EmptyCallable {
@@ -697,9 +797,9 @@ impl DuskCallable for EmptyCallable {
         _args: &Vec<&mut Box<dyn Any>>
         ) -> Result<Box<dyn Any>, DuskError> {
 
-        Err(DuskError::NotImplementedError {
-            msg: "Called function is not implemented"
-        })
+        Err(DuskError::NotImplementedError (
+            "Called function is not implemented"
+        ))
     }
 }
 
@@ -940,20 +1040,18 @@ pub struct Type {
     pub tp_id: usize,
 
     /// If an object of this type should have some functions, that
-    /// can be called on it, they should be provided here. The 
-    /// functions provided here should be called using the same
-    /// [`Freight::call_function`] function, so they should
-    /// all have unique numbers
+    /// can be called on it, they should be provided here. The function
+    /// IDs of these functions must be unique over all other functions
+    /// in the plugin
     pub methods : Vec<Function>,
 
     /// All fields of an object of this type, user needs to be able
     /// to access, should be located here. The field name then
     /// will be the function name, function's return type is the 
     /// field type and the only argument of the function should 
-    /// be of the type, the field is owned by. These functions
-    /// are, once again, called by the same [`Freight::call_function`]
-    /// function and should all have unique numbers over all functions
-    /// called by [`Freight::call_function`]
+    /// be of the type, the field is owned by. The function
+    /// IDs of these functions must be unique over all other functions
+    /// in the plugin
     pub fields : Vec<Function>,
 
     /// All the traits that are implemented for this type
@@ -1012,10 +1110,14 @@ pub struct Module {
 #[derive(Clone)]
 pub struct TraitProxy {
     
+    /// The name of the trait
     pub trait_name: &'static str,
 
+    /// The plugin where it came from
     pub freight_proxy: std::rc::Rc<FreightProxy>,
 
+    /// The vector, linking IDs of the Trait functions to the actual
+    /// general plugin function IDs
     pub function_links: Vec<usize>,
 }
 
@@ -1028,12 +1130,8 @@ pub struct TraitProxy {
 /// under Any trait as well as the function name to refer to it and
 /// its identification number, which is needed to call this function
 ///
-/// The [`Freight::call_function`] method actually calls the function,
-/// which matches the provided id.
-///
 /// # Example
 /// TODO
-#[allow(unused_parens)]
 pub trait Freight {
 
     /// Function that is ran when importing the plugin, which
@@ -1220,6 +1318,7 @@ pub trait Freight {
 
 /// Structure representing an empty [`Freight`] implementor, needed
 /// only for [`FreightProxy`] configuration
+#[derive(Copy, Clone)]
 pub struct EmptyFreight;
 impl Freight for EmptyFreight {
     fn get_module_list (self: &mut Self) -> Vec<Module> {
@@ -1301,26 +1400,33 @@ impl FreightProxy {
         -> Result<FreightProxy, DuskError> {
 
         // Import the library
-        // *FIXME* Get rid of unwrap
-        let lib : std::rc::Rc<libloading::Library>
-            = std::rc::Rc::new(
-            libloading::Library::new(lib_path).unwrap());
+        let lib : std::rc::Rc<libloading::Library>;
+        match libloading::Library::new(lib_path) {
+            Ok(library) => lib = std::rc::Rc::new(library),
+            Err(lib_err) => return(Err(DuskError::LoadingError (lib_err))),
+        }
 
         // Get the plugin declaration structure from this lib
-        // *FIXME* Get rid of unwrap
-        let declaration: FreightDeclaration = lib
-            .get::<*mut FreightDeclaration>(b"freight_declaration\0")
-            .unwrap()
-            .read();
+        let declaration: FreightDeclaration;
+        match lib.get::<*mut FreightDeclaration>(
+            b"freight_declaration\0") {
+
+            Ok(decl) => declaration = decl.read(),
+            Err(lib_err) => return(Err(DuskError::LoadingError (lib_err))),
+        }
 
         // Check if the compiler and api versions match
         // If not -- immediately return an error
-        if declaration.rustc_version != RUSTC_VERSION
-            || declaration.api_version != API_VERSION
-        {
-            return Err(DuskError::Message{
-                msg: "Version mismatch"
-            });
+        if declaration.rustc_version != RUSTC_VERSION {
+            return Err(DuskError::ImportError (
+                "Compiler version mismatch"
+            ));
+        }
+
+        if declaration.api_version != API_VERSION {
+            return Err(DuskError::ImportError (
+                "Dusk API version mismatch"
+            ));
         }
 
         // Make a new FreightProxy with all values that are
