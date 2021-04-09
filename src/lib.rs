@@ -23,7 +23,7 @@
 #![warn(unused_crate_dependencies)]
 #![warn(unused_extern_crates)]
 #![warn(missing_copy_implementations)]
-//#![warn(missing_debug_implementations)]
+#![warn(missing_debug_implementations)]
 #![warn(variant_size_differences)]
 #![warn(keyword_idents)]
 #![warn(anonymous_parameters)]
@@ -110,7 +110,7 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 ///
 /// e.g in 1.2.3.4, 1 is major, 2 is minor, 3 is release and 4 
 /// is build
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Eq)]
 pub struct Version {
 
     /// Major version number
@@ -124,6 +124,52 @@ pub struct Version {
 
     /// Build version number
     pub build: usize,
+}
+
+impl Ord for Version {
+    fn cmp(self: &Self, other: &Self) -> std::cmp::Ordering {
+        if self.major > other.major {
+            return std::cmp::Ordering::Greater;
+        }
+        if self.major < other.major {
+            return std::cmp::Ordering::Less;
+        }
+        if self.minor > other.minor {
+            return std::cmp::Ordering::Greater;
+        }
+        if self.minor < other.minor {
+            return std::cmp::Ordering::Less;
+        }
+        if self.release > other.release {
+            return std::cmp::Ordering::Greater;
+        }
+        if self.release < other.release {
+            return std::cmp::Ordering::Less;
+        }
+        if self.build > other.build {
+            return std::cmp::Ordering::Greater;
+        }
+        if self.build < other.build {
+            return std::cmp::Ordering::Less;
+        }
+        return std::cmp::Ordering::Equal;
+    }
+}
+
+impl PartialOrd for Version {
+    fn partial_cmp(
+        self: &Self, 
+        other: &Self,
+        ) -> Option<std::cmp::Ordering> {
+
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Version {
+    fn eq(self: &Self, other: &Self) -> bool {
+        return self.cmp(other) == std::cmp::Ordering::Equal;
+    }
 }
 
 impl Default for Version {
@@ -177,6 +223,23 @@ pub struct FreightDeclaration {
     /// to provide unexportable things, such as structs, in
     /// particular, [`Freight`] implementor structures
     pub register: fn (&mut dyn FreightRegistrar),
+}
+
+impl std::fmt::Debug for FreightDeclaration {
+    fn fmt (
+        self: &Self, 
+        f: &mut std::fmt::Formatter<'_>,
+        ) -> std::fmt::Result {
+
+        f.debug_struct("FreightDeclaration")
+            .field("rustc_version", &self.rustc_version)
+            .field("api_version", &self.api_version)
+            .field("freight_version", &self.freight_version)
+            .field("backwards_compat_version", 
+                &self.backwards_compat_version)
+            .field("name", &self.name)
+            .finish()
+    }
 }
 
 /// A macro, which **MUST** be used for exporting a struct.
@@ -449,7 +512,7 @@ pub enum DuskError {
 /// the dependencies, when seeing this request finds out that
 /// the plugin that was requested was already loaded earlier,
 /// so it might as well provide it to the requesting plugin.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum InterplugRequest {
 
     /// Request for a specific plugin with a specific version
@@ -575,7 +638,7 @@ pub enum InterplugRequest {
 /// about the amount of threads anymore, and lets the plugin decide
 /// by itself which amount it wants to use, it can send a
 /// [`Limitation::Reset`] to it.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum Limitation {
 
     /// Set the maximum allowed number, represetting some setting
@@ -612,7 +675,7 @@ pub enum Limitation {
 ///
 /// The only required field is arg_type, but there are some optional
 /// fields you might want to use.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Parameter {
 
     /// The argument type, as it's [`TypeId`]
@@ -697,6 +760,7 @@ impl Default for Parameter {
 
 /// The struct that represents a keyword argument if it is passed
 /// to the function with no_check_args set to true
+#[derive(Debug)]
 pub struct Kwarg {
 
     /// The keyword
@@ -717,6 +781,16 @@ pub trait DuskCallable: CallableClone {
         self: &mut Self,
         args: &Vec<&mut Box<dyn Any>>
         ) -> Result<Box<dyn Any>, DuskError>;
+}
+
+impl std::fmt::Debug for dyn DuskCallable {
+    fn fmt (
+        self: &Self, 
+        f: &mut std::fmt::Formatter<'_>,
+        ) -> std::fmt::Result {
+
+        f.pad("DuskCallable")
+    }
 }
 
 /// The trait, containing a function that clones the existing
@@ -763,6 +837,17 @@ impl DuskCallable for SimpleCallable {
     }
 }
 
+impl std::fmt::Debug for SimpleCallable {
+    fn fmt (
+        self: &Self, 
+        f: &mut std::fmt::Formatter<'_>,
+        ) -> std::fmt::Result {
+
+        f.debug_struct("SimpleCallable")
+            .finish()
+    }
+}
+
 /// Dusk callable that not only holds a function pointer, but
 /// also a vector of args to pass to the underlying function
 /// as well as the arguments provided to the call function
@@ -786,9 +871,21 @@ impl DuskCallable for ConstArgsCallable {
     }
 }
 
+impl std::fmt::Debug for ConstArgsCallable {
+    fn fmt (
+        self: &Self, 
+        f: &mut std::fmt::Formatter<'_>,
+        ) -> std::fmt::Result {
+
+        f.debug_struct("ConstArgsCallable")
+            .field("const_args", &self.const_args)
+            .finish()
+    }
+}
+
 /// A default callable: does not call anything, always returns
 /// [`DuskError::NotImplementedError`]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct EmptyCallable;
 
 impl DuskCallable for EmptyCallable {
@@ -817,7 +914,7 @@ impl DuskCallable for EmptyCallable {
 /// * its return [`TypeId`]
 /// * whether or not the arguments should be checked or just passed 
 /// as is
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TraitFunctionDefinition {
 
     /// Function name, as a reference to a static string. Mainly
@@ -891,7 +988,7 @@ impl Default for TraitFunctionDefinition {
 /// * whether or not the arguments should be checked or just passed 
 /// as is
 /// * a vector of plugin dependencies this function has
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Function {
 
     /// Function name, as a reference to a static string. Mainly
@@ -968,7 +1065,7 @@ impl Default for Function {
 /// A TraitFunction object contains
 /// * its number in trait
 /// * the underlying function
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TraitFunction {
 
     /// Function ID, used to call this function
@@ -993,7 +1090,7 @@ impl Default for TraitFunction {
 
 /// A trait definition, that contains the defined trait's name
 /// and a vector of definitions of it's functions
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TraitDefinition {
 
     /// The trait's name
@@ -1006,7 +1103,7 @@ pub struct TraitDefinition {
 /// A trait implementation, that contains name of the trait
 /// being implemented and a vector of the trait method
 /// implementations
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TraitImplementation {
 
     /// Trait name (containing full path to it in the plugin
@@ -1028,7 +1125,7 @@ pub struct TraitImplementation {
 /// * its methods
 /// * trait implementations for this type
 /// * functions needed to access its fields
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Type {
 
     /// Name for the [`TypeId`] owner to be reffered to as a static
@@ -1081,7 +1178,7 @@ impl Default for Type {
 /// A structure, that defines a module and may or may not contain
 /// types, functions, submodules, trait definitions and 
 /// constants
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Module {
 
     /// The module name
@@ -1107,7 +1204,7 @@ pub struct Module {
 }
 
 /// TODO: trait proxy not perfect for the cause yet
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TraitProxy {
     
     /// The name of the trait
@@ -1190,6 +1287,8 @@ pub trait Freight {
     /// OF THE TYPE METHODS AND FIELD FUNCTIONS**, 
     /// **ALL FUNCTIONS USED FOR CONSTANTS** and including 
     /// **ALL OF THE BINARY OPERATOR FUNCTIONS**
+    ///
+    /// **TODO:** while building list, also build function names
     fn get_function_list (self: &mut Self) -> Vec<Function> {
         let all_modules: Vec<Module> = self.get_module_list();
         let mut parents: Vec<Module>;
@@ -1279,6 +1378,8 @@ pub trait Freight {
     ///
     /// This vector should contain **ALL** types from **ALL**
     /// modules **AND ALL OF THEIR SUBMODULES**
+    ///
+    /// **TODO:** while building list, also build type names
     fn get_type_list (self: &mut Self) -> Vec<Type> {
         let all_modules: Vec<Module> = self.get_module_list();
         let mut parents: Vec<Module>;
@@ -1316,9 +1417,19 @@ pub trait Freight {
     }
 }
 
+impl std::fmt::Debug for dyn Freight {
+    fn fmt (
+        self: &Self, 
+        f: &mut std::fmt::Formatter<'_>,
+        ) -> std::fmt::Result {
+
+        f.pad("Freight")
+    }
+}
+
 /// Structure representing an empty [`Freight`] implementor, needed
 /// only for [`FreightProxy`] configuration
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct EmptyFreight;
 impl Freight for EmptyFreight {
     fn get_module_list (self: &mut Self) -> Vec<Module> {
@@ -1370,6 +1481,7 @@ pub trait FreightRegistrar {
 ///     println!("{}, {}", func.name, func.number);
 /// }
 /// ```
+#[derive(Debug)]
 pub struct FreightProxy {
 
     /// Imported freight, solely for internal purposes

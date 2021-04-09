@@ -4,7 +4,7 @@ description = "Crate, that defines plugin interface used in dusk project"
 readme = "README.md"
 license-file = "LICENSE"
 license = "GPL-3.0-or-later"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Andy Gozas <andy@gozas.me>"]
 edition = "2018"
 
