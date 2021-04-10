@@ -64,6 +64,8 @@
 use std::any::{Any, TypeId};
 
 pub mod changelog;
+pub use DuskError::*;
+pub use InterplugRequest::*;
 
 /// Api version parameter, passed from the build script.
 ///
@@ -198,14 +200,14 @@ impl Default for Version {
 /// This structure must only be built by [`export_freight!`] macro
 /// in plugins. And its fields are only read by
 /// [`FreightProxy::load`] function when loading the plugin
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct FreightDeclaration {
 
     /// Rust compiler version as a static string
-    pub rustc_version: &'static str,
+    pub rustc_version: String,
 
     /// Api version as a static string
-    pub api_version: &'static str,
+    pub api_version: String,
 
     /// Version of the freight being imported
     pub freight_version: Version,
@@ -216,7 +218,7 @@ pub struct FreightDeclaration {
     pub backwards_compat_version: Version,
 
     /// Name of the freight being imported
-    pub name: &'static str,
+    pub name: String,
 
     /// Function that gets a [`FreightRegistrar`] trait implementor
     /// as an argument and calls its freight_register function
@@ -461,34 +463,34 @@ pub enum DuskError {
     LoadingError (libloading::Error),
     
     /// Plugin import failed
-    ImportError (&'static str),
+    ImportError (String),
 
     /// An argument of wrong type received
-    TypeError (&'static str),
+    TypeError (String),
 
     /// An argument of wrong value was received
-    ValueError (&'static str),
+    ValueError (String),
 
     /// An OS error occured
-    OsError (&'static str),
+    OsError (String),
 
     /// At some point some value check failed
-    AssertionError (&'static str),
+    AssertionError (String),
 
     /// Index out of bounds
-    IndexError (&'static str),
+    IndexError (String),
 
     /// Code is trying to divide by zero
-    ZeroDivisionError (&'static str),
+    ZeroDivisionError (String),
 
     /// Out of memory
-    OverflowError (&'static str),
+    OverflowError (String),
 
     /// Called function is not implemented
-    NotImplementedError (&'static str),
+    NotImplementedError (String),
 
     /// Other error occured during runtime
-    RuntimeError (&'static str),
+    RuntimeError (String),
 }
 
 /// Enum, that represents an interplugin request and either contains
@@ -521,7 +523,7 @@ pub enum InterplugRequest {
     PlugRequest {
 
         /// The string, that identifies the plugin
-        plugin: &'static str,
+        plugin: String,
 
         /// The list of function IDs that need their dependencies
         /// fulfilled
@@ -541,10 +543,10 @@ pub enum InterplugRequest {
 
         /// String that identifies the plugin, conataining the 
         /// trait definition
-        plugin: &'static str,
+        plugin: String,
 
         /// Trait name
-        trait_name: &'static str,
+        trait_name: String,
 
         /// In trait function IDs of the functions that need 
         /// their dependencies fulfilled
@@ -561,7 +563,7 @@ pub enum InterplugRequest {
     PlugRequestAll {
         
         /// The string, that identifies the plugin
-        plugin: &'static str,
+        plugin: String,
 
         /// The plugin version, with which the actuall version
         /// has to at least be compatible
@@ -576,10 +578,10 @@ pub enum InterplugRequest {
 
         /// String that identifies the plugin, conataining the 
         /// trait definition
-        plugin: &'static str,
+        plugin: String,
 
         /// Trait name
-        trait_name: &'static str,
+        trait_name: String,
 
         /// The version of the plugin containing the trait 
         /// definition
@@ -589,7 +591,7 @@ pub enum InterplugRequest {
     /// An interlplug request that contains several interlplug
     /// requests, either of which *MUST* be fulfilled for the
     /// plugin to work at all
-    Either {
+    RequestEither {
         
         /// A vector of the requests, either of which has to 
         /// be fulfilled
@@ -599,7 +601,7 @@ pub enum InterplugRequest {
     /// An interplug request that contains several interplug
     /// requests, each of which *MUST* be fulfilled in order for
     /// the plugin to work
-    Each {
+    RequestEach {
 
         /// A vector of the requests, all of which have to 
         /// be fulfilled
@@ -608,7 +610,7 @@ pub enum InterplugRequest {
 
     /// An interplug request that *MUST* be fulfilled in order
     /// for the plugin to work at all
-    Crucial {
+    RequestCrucial {
 
         /// A box, containing the actual request
         request: Box<InterplugRequest>,
@@ -617,7 +619,7 @@ pub enum InterplugRequest {
     /// An interplug request that must be fulfilled in order for
     /// the plugin to fully work, which means that without it
     /// some functions will be unavailable
-    Optional {
+    RequestOptional {
 
         /// A box, containing the actual request
         request: Box<InterplugRequest>,
@@ -638,14 +640,14 @@ pub enum InterplugRequest {
 /// about the amount of threads anymore, and lets the plugin decide
 /// by itself which amount it wants to use, it can send a
 /// [`Limitation::Reset`] to it.
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum Limitation {
 
     /// Set the maximum allowed number, represetting some setting
     Top {
 
         /// The name of the setting
-        setting: &'static str,
+        setting: String,
 
         /// The value to which we want to set it
         limit: isize,
@@ -655,7 +657,7 @@ pub enum Limitation {
     Bottom {
 
         /// The name of the setting
-        setting: &'static str,
+        setting: String,
 
         /// The value to which we want to set it
         limit: isize,
@@ -666,7 +668,7 @@ pub enum Limitation {
     Reset {
 
         /// The name of the setting
-        setting: &'static str,
+        setting: String,
     },
 }
 
@@ -706,7 +708,7 @@ pub struct Parameter {
     /// keyword, you might want to set the keyword to [`Some`],
     /// 
     /// Default value is [`None`]
-    pub keyword: Option<&'static str>,
+    pub keyword: Option<String>,
 
     /// If your keyword argument is optional, you can set
     /// it's default value to Some
@@ -764,7 +766,7 @@ impl Default for Parameter {
 pub struct Kwarg {
 
     /// The keyword
-    pub keyword: &'static str,
+    pub keyword: String,
 
     /// The actual argument value
     pub value: &'static mut Box<dyn Any>,
@@ -895,7 +897,7 @@ impl DuskCallable for EmptyCallable {
         ) -> Result<Box<dyn Any>, DuskError> {
 
         Err(DuskError::NotImplementedError (
-            "Called function is not implemented"
+            "Called function is not implemented".to_string()
         ))
     }
 }
@@ -920,7 +922,7 @@ pub struct TraitFunctionDefinition {
     /// Function name, as a reference to a static string. Mainly
     /// used to give user the ability to choose the function they
     /// want to use
-    pub name: &'static str,
+    pub name: String,
 
     /// Function ID, used to find this function in the trait 
     /// implementation function vector
@@ -964,7 +966,7 @@ pub struct TraitFunctionDefinition {
 impl Default for TraitFunctionDefinition {
     fn default () -> TraitFunctionDefinition {
         TraitFunctionDefinition {
-            name: "",
+            name: "".to_string(),
             fn_trait_id: 0,
             parameters: Vec::new(),
             return_type: TypeId::of::<u8>(),
@@ -994,7 +996,7 @@ pub struct Function {
     /// Function name, as a reference to a static string. Mainly
     /// used to give user the ability to choose the function they
     /// want to use
-    pub name: &'static str,
+    pub name: String,
 
     /// The callable that should be used when calling the function
     pub callable: Box<dyn DuskCallable>,
@@ -1048,7 +1050,7 @@ pub struct Function {
 impl Default for Function {
     fn default () -> Function {
         Function {
-            name: "",
+            name: "".to_string(),
             callable : Box::new(EmptyCallable{}),
             fn_id: 0,
             parameters: Vec::new(),
@@ -1094,7 +1096,7 @@ impl Default for TraitFunction {
 pub struct TraitDefinition {
 
     /// The trait's name
-    pub name: &'static str,
+    pub name: String,
 
     /// The method definitions
     pub methods: Vec<TraitFunctionDefinition>,
@@ -1108,7 +1110,7 @@ pub struct TraitImplementation {
 
     /// Trait name (containing full path to it in the plugin
     /// where it came from)
-    pub name: &'static str,
+    pub name: String,
 
     /// Methods being implemented
     pub methods: Vec<TraitFunction>,
@@ -1130,7 +1132,7 @@ pub struct Type {
 
     /// Name for the [`TypeId`] owner to be reffered to as a static
     /// string
-    pub name: &'static str,
+    pub name: String,
 
     /// The **INTERNAL** id for the type, representing the position
     /// of the type in the type vector, **NOT** the native [`TypeId`]**
@@ -1165,7 +1167,7 @@ pub struct Type {
 impl Default for Type {
     fn default () -> Type {
         Type {
-            name: "",
+            name: "".to_string(),
             tp_id: 0,
             methods: Vec::new(),
             fields: Vec::new(),
@@ -1182,7 +1184,7 @@ impl Default for Type {
 pub struct Module {
 
     /// The module name
-    pub name: &'static str,
+    pub name: String,
 
     /// A vector of types, presented in this module
     pub types: Vec<Type>,
@@ -1208,7 +1210,7 @@ pub struct Module {
 pub struct TraitProxy {
     
     /// The name of the trait
-    pub trait_name: &'static str,
+    pub trait_name: String,
 
     /// The plugin where it came from
     pub freight_proxy: std::rc::Rc<FreightProxy>,
@@ -1288,7 +1290,6 @@ pub trait Freight {
     /// **ALL FUNCTIONS USED FOR CONSTANTS** and including 
     /// **ALL OF THE BINARY OPERATOR FUNCTIONS**
     ///
-    /// **TODO:** while building list, also build function names
     fn get_function_list (self: &mut Self) -> Vec<Function> {
         let all_modules: Vec<Module> = self.get_module_list();
         let mut parents: Vec<Module>;
@@ -1300,11 +1301,18 @@ pub trait Freight {
             parents.push(module.clone());
             par_progress.push(0);
             'par: while parents.len() > 0 {
+                let tmp_name: String = parents.last().unwrap().name.clone();
                 if (*par_progress.last().unwrap() < 
                     parents.last().unwrap().submodules.len()) {
 
                     parents.push(parents.last().unwrap().submodules[
                         *par_progress.last().unwrap()].clone());
+
+                    parents.last_mut().unwrap().name = format!(
+                        "{}::{}", 
+                        tmp_name, 
+                        parents.last().unwrap().name);
+                    
                     *par_progress.last_mut().unwrap() += 1;
                     par_progress.push(0);
                     continue 'par;
@@ -1313,54 +1321,100 @@ pub trait Freight {
                 'fun: for def_fun in &parents.last().unwrap().functions {
                     if def_fun.fn_id < result.len() {
                         result[def_fun.fn_id] = def_fun.clone();
+                        result[def_fun.fn_id].name = format!(
+                            "{}::{}",
+                            tmp_name,
+                            def_fun.name);
                         continue 'fun;
                     }
                     for _i in result.len()..def_fun.fn_id {
                         result.push(Default::default());
                     }
                     result.push(def_fun.clone());
+                    result[def_fun.fn_id].name = format!(
+                        "{}::{}",
+                        tmp_name,
+                        def_fun.name);
                 }
                 'con: for def_fun in &parents.last().unwrap().constants {
                     if def_fun.fn_id < result.len() {
                         result[def_fun.fn_id] = def_fun.clone();
+                        result[def_fun.fn_id].name = format!(
+                            "@{}::{}",
+                            tmp_name,
+                            def_fun.name);
                         continue 'con;
                     }
                     for _i in result.len()..def_fun.fn_id {
                         result.push(Default::default());
                     }
                     result.push(def_fun.clone());
+                    result[def_fun.fn_id].name = format!(
+                        "@{}::{}",
+                        tmp_name,
+                        def_fun.name);
                 }
                 for def_type in parents.pop().unwrap().types {
                     'met: for def_met in def_type.methods {
                         if def_met.fn_id < result.len() {
                             result[def_met.fn_id] = def_met.clone();
+                            result[def_met.fn_id].name = format!(
+                                "{}::{}::{}",
+                                tmp_name,
+                                def_type.name,
+                                def_met.name);
                             continue 'met;
                         }
                         for _i in result.len()..def_met.fn_id {
                             result.push(Default::default());
                         }
                         result.push(def_met.clone());
+                        result[def_met.fn_id].name = format!(
+                            "{}::{}::{}",
+                            tmp_name,
+                            def_type.name,
+                            def_met.name);
                     }
                     'fil: for def_fil in def_type.fields {
                         if def_fil.fn_id < result.len() {
                             result[def_fil.fn_id] = def_fil.clone();
+                            result[def_fil.fn_id].name = format!(
+                                "@{}::{}::{}",
+                                tmp_name,
+                                def_type.name,
+                                def_fil.name);
                             continue 'fil;
                         }
                         for _i in result.len()..def_fil.fn_id {
                             result.push(Default::default());
                         }
                         result.push(def_fil.clone());
+                        result[def_fil.fn_id].name = format!(
+                            "@{}::{}::{}",
+                            tmp_name,
+                            def_type.name,
+                            def_fil.name);
                     }
                     for def_trt in def_type.trait_implementations {
                         'trtmet: for def_met in def_trt.methods {
                             if def_met.function.fn_id < result.len() {
                                 result[def_met.function.fn_id] = def_met.function.clone();
+                                result[def_met.function.fn_id].name = format!(
+                                    "{}::{}::{}",
+                                    tmp_name,
+                                    def_type.name,
+                                    def_met.function.name);
                                 continue 'trtmet;
                             }
                             for _i in result.len()..def_met.function.fn_id {
                                 result.push(Default::default());
                             }
                             result.push(def_met.function.clone());
+                            result[def_met.function.fn_id].name = format!(
+                                "{}::{}::{}",
+                                tmp_name,
+                                def_type.name,
+                                def_met.function.name);
                         }
                     }
                 }
@@ -1379,7 +1433,6 @@ pub trait Freight {
     /// This vector should contain **ALL** types from **ALL**
     /// modules **AND ALL OF THEIR SUBMODULES**
     ///
-    /// **TODO:** while building list, also build type names
     fn get_type_list (self: &mut Self) -> Vec<Type> {
         let all_modules: Vec<Module> = self.get_module_list();
         let mut parents: Vec<Module>;
@@ -1391,17 +1444,28 @@ pub trait Freight {
             parents.push(module.clone());
             par_progress.push(0);
             'par: while parents.len() > 0 {
+                let tmp_name: String = parents.last().unwrap().name.clone();
                 if (*par_progress.last().unwrap() < 
                     parents.last().unwrap().submodules.len()) {
 
                     parents.push(parents.last().unwrap().submodules[
                         *par_progress.last().unwrap()].clone());
+
+                    parents.last_mut().unwrap().name = format!(
+                        "{}::{}", 
+                        tmp_name, 
+                        parents.last().unwrap().name);
+                    
                     *par_progress.last_mut().unwrap() += 1;
                     par_progress.push(0);
                     continue 'par;
                 }
                 par_progress.pop();
-                'typ: for def_type in parents.pop().unwrap().types {
+                'typ: for mut def_type in parents.pop().unwrap().types {
+                    def_type.name = format!(
+                        "{}::{}",
+                        tmp_name,
+                        def_type.name);
                     if def_type.tp_id < result.len() {
                         result[def_type.tp_id] = def_type.clone();
                         continue 'typ;
@@ -1492,7 +1556,7 @@ pub struct FreightProxy {
     pub lib: std::rc::Rc<libloading::Library>,
 
     /// Imported freights name as a static string
-    pub name: &'static str,
+    pub name: String,
 
     /// Imported freights version 
     pub version: Version,
@@ -1515,7 +1579,7 @@ impl FreightProxy {
         let lib : std::rc::Rc<libloading::Library>;
         match libloading::Library::new(lib_path) {
             Ok(library) => lib = std::rc::Rc::new(library),
-            Err(lib_err) => return(Err(DuskError::LoadingError (lib_err))),
+            Err(lib_err) => return(Err(LoadingError (lib_err))),
         }
 
         // Get the plugin declaration structure from this lib
@@ -1524,20 +1588,20 @@ impl FreightProxy {
             b"freight_declaration\0") {
 
             Ok(decl) => declaration = decl.read(),
-            Err(lib_err) => return(Err(DuskError::LoadingError (lib_err))),
+            Err(lib_err) => return(Err(LoadingError (lib_err))),
         }
 
         // Check if the compiler and api versions match
         // If not -- immediately return an error
         if declaration.rustc_version != RUSTC_VERSION {
-            return Err(DuskError::ImportError (
-                "Compiler version mismatch"
+            return Err(ImportError (
+                "Compiler version mismatch".to_string()
             ));
         }
 
         if declaration.api_version != API_VERSION {
-            return Err(DuskError::ImportError (
-                "Dusk API version mismatch"
+            return Err(ImportError (
+                "Dusk API version mismatch".to_string()
             ));
         }
 

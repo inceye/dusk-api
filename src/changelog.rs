@@ -1,5 +1,21 @@
 //! The change log
 
+/// Release 0.1.3 (2021-04-10)
+///
+/// Add pub use statements for DuskError and InterplugRequest enums
+/// for easier accessibility. Also change name of requests a little
+///
+/// Swithch all strs for name and string representations for Strings
+/// as they proved to be much more convenient to work with
+///
+/// Make function names of functions provided by autoimplemented
+/// get_function_list (and names of types, provided by 
+/// get_type_list) resemble actual identificators by which these
+/// functions would be called, with complete path to the function
+/// included in the name
+///
+pub mod r0_1_3 {}
+
 /// Release 0.1.2 (2021-04-09)
 ///
 /// Add Debug trait implementations for every single defined structure 
