@@ -1,4 +1,32 @@
+// Copyright (C) 2021 by Andy Gozas <andy@gozas.me>
+//
+// This file is part of Dusk API.
+//
+// Dusk API is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Dusk API is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Dusk API.  If not, see <https://www.gnu.org/licenses/>.
+
 //! The change log
+
+/// Release 0.2.0 (2021-05-03)
+///
+/// Add more functionality to traits, such as not only getting all
+/// functions at once, but getting functions, types, trait declarations
+/// and even callables by names and IDs.
+///
+/// Split the project into different files, but make it in such way
+/// as not to add another layer of incapsualtion (pub use each module)
+///
+pub mod r0_2_0 {}
 
 /// Release 0.1.3 (2021-04-10)
 ///
