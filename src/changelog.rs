@@ -17,6 +17,15 @@
 
 //! The change log
 
+/// Release 0.2.1
+///
+/// Add a new error type: [`crate::DuskError::DependencyError`] which can
+/// notify the program that some interplugin dependency must be resolved
+/// before the action can be performed, and carries an InterplugRequest,
+/// identifying such dependency
+///
+pub mod r0_2_1 {}
+
 /// Release 0.2.0 (2021-05-03)
 ///
 /// Add more functionality to traits, such as not only getting all

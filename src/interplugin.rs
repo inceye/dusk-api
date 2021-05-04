@@ -23,17 +23,17 @@ use crate::*;
 pub use InterplugRequest::*;
 
 /// Enum, that represents an interplugin request and either contains
-/// a [`InterplugRequest::Crucial`] plugin request (must be provided
+/// a [`InterplugRequest::RequestCrucial`] plugin request (must be provided
 /// in order for the plugin to work or an
-/// [`InterplugRequest::Optional`] plugin request which may be
+/// [`InterplugRequest::RequestOptional`] plugin request which may be
 /// denied
 ///
 /// For more complex situations, when several plugins might provide
-/// similar functionality, [`InterplugRequest::Either`] may be used
+/// similar functionality, [`InterplugRequest::RequestEither`] may be used
 /// to provide several requests, each of which may be fulfilled
 /// for the plugin to work correctly. In case this  functionality
 /// may also be provided by several different plugins together,
-/// [`InterplugRequest::Each`] should be used.
+/// [`InterplugRequest::RequestEach`] should be used.
 ///
 /// If the request is optional, the final decision to provide it
 /// or not to provide it is supposed to be made by the user. For

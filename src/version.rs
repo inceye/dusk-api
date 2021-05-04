@@ -31,11 +31,11 @@ pub static API_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// it may be incompatible with the program using it, so before
 /// proceeding to use the plugin a version check is needed.
 ///
-/// for this to work, build script should set this environmental
-/// variable, which can be done like this
+/// For this to work, build script should set this environmental
+/// variable, which is done for this crate like this
 ///
 /// # build.rs
-/// ```
+/// ``` rust, ignore
 /// extern crate rustc_version;
 ///
 /// fn main() {
@@ -45,14 +45,14 @@ pub static API_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// ```
 ///
 /// # Cargo.toml
-/// ```
+/// ``` rust, ignore
 /// [build-dependencies]
 /// rustc_version = "0.3.0"
 /// ```
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 /// A structure that holds a representation of plugin version
-/// for easy comparing and storing.
+/// for easy comparison and storage.
 ///
 /// The ordering is as follows
 ///
@@ -63,6 +63,18 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 ///
 /// e.g in 1.2.3.4, 1 is major, 2 is minor, 3 is release and 4 
 /// is build
+///
+/// # Example
+///
+/// ```
+/// let a = dusk_api::Version { major: 1, ..Default::default() };
+/// let b = dusk_api::Version { minor: 1, ..Default::default() };
+/// let c = dusk_api::Version { major: 0, minor: 2, release: 1, build: 0 };
+///
+/// assert_eq!(a.cmp(&b), std::cmp::Ordering::Greater); 
+/// assert_eq!(b.cmp(&c), std::cmp::Ordering::Less); 
+/// assert_eq!(a.cmp(&c), std::cmp::Ordering::Greater); 
+/// ```
 #[derive(Copy, Clone, Debug, Eq)]
 pub struct Version {
 

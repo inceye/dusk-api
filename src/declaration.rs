@@ -92,7 +92,7 @@ impl std::fmt::Debug for FreightDeclaration {
 /// [`export_plugin!`] macro documentation
 ///
 /// # Example
-/// ```
+/// ``` rust, ignore
 /// dusk_api::export_freight!(
 ///     "test",
 ///     Version {major: 1, minor: 23, ..Default::default() }, 
@@ -115,7 +115,7 @@ impl std::fmt::Debug for FreightDeclaration {
 /// right after the plugin version
 ///
 /// # Example
-/// ```
+/// ``` rust, ignore
 /// dusk_api::export_freight!(
 ///     "test",
 ///     Version {major: 1, minor: 23, ..Default::default() }, 
@@ -167,7 +167,7 @@ macro_rules! export_freight {
 ///
 /// # Example
 ///
-/// ```
+/// ``` rust, ignore
 /// dusk_api::register_freight!(MyFreight, my_reg_fn);
 /// dusk_api::export_freight!(
 ///     "test",
@@ -200,7 +200,7 @@ macro_rules! register_freight {
 ///
 /// # Example
 ///
-/// ```
+/// ``` rust, ignore
 /// dusk_api::export_plugin!(
 ///     "test",
 ///     Version {major: 1, minor: 23, ..Default::default() }, 
@@ -217,7 +217,7 @@ macro_rules! register_freight {
 ///
 /// # Example
 ///
-/// ```
+/// ``` rust, ignore
 /// dusk_api::export_plugin!(
 ///     "test",
 ///     Version {major: 1, minor: 23, ..Default::default() }, 
@@ -253,7 +253,7 @@ macro_rules! export_plugin {
 ///
 /// # Example
 ///
-/// ```
+/// ``` rust, ignore
 /// let mut my_f_proxy: FreightProxy =
 ///     import_plugin!("/bin/libtest-plug.so").unwrap();
 ///

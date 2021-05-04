@@ -54,7 +54,7 @@ pub trait FreightRegistrar {
 ///
 /// # Example
 ///
-/// ```
+/// ``` rust, ignore
 /// let mut my_f_proxy: FreightProxy = unsafe{
 ///     FreightProxy::load("/bin/libtest_plug.so").expect("fail")
 /// };
@@ -83,6 +83,27 @@ pub struct FreightProxy {
     /// The earliest version, for which the code was designed, this
     /// code can safely be run with the new plugin version
     pub backwards_compat_version: Version,
+    
+    callables: Option<Vec<Box<dyn DuskCallable>>>,
+
+    functions: Option<Vec<Function>>,
+
+    types: Option<Vec<Type>>,
+
+    trait_definitions: Option<Vec<TraitDefinition>>,
+
+    modules: Option<Vec<Module>>,
+
+    functions_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
+
+    types_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
+
+    types_by_native_id: Option<std::collections::HashMap<TypeId, Vec<usize>>>,
+
+    trait_definitions_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
+
+    modules_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
+
 }
 
 /// Functions, needed to configure [`FreightProxy`] structure
@@ -132,8 +153,17 @@ impl FreightProxy {
             lib: lib,
             name: declaration.name,
             version: declaration.freight_version,
-            backwards_compat_version: 
-                declaration.backwards_compat_version,
+            backwards_compat_version: declaration.backwards_compat_version,
+            callables: None,
+            functions: None,
+            types: None,
+            trait_definitions: None,
+            modules: None,
+            functions_by_name: None,
+            types_by_name: None,
+            types_by_native_id: None,
+            trait_definitions_by_name: None,
+            modules_by_name: None,
         };
 
         // Call the function, imported in the plugin declaration
@@ -194,6 +224,195 @@ impl Freight for FreightProxy {
 
     fn top_modules (self: &mut Self) -> Vec<Module> {
         self.freight.top_modules()
+    }
+
+    fn get_operator_list (self: &mut Self) -> Vec<Function> {
+        self.freight.get_operator_list()
+    }
+
+    fn get_callable_list (
+        self: &mut Self,
+    ) -> Result<Vec<Box<dyn DuskCallable>>, DuskError> {
+
+        match &self.callables {
+            Some(list) => return Ok(list.clone()),
+            None => {
+                let tmp_functions: Vec<Function> = self.get_function_list()?;
+                let mut tmp_callables: Vec<Box<dyn DuskCallable>> = Vec::new();
+                for function in tmp_functions {
+                    tmp_callables.push(function.callable.clone());
+                }
+                self.callables = Some(tmp_callables.clone());
+                return Ok(tmp_callables);
+            },
+        }
+    }
+
+    fn get_callable_by_id (
+        self: &mut Self,
+        id: usize,
+    ) -> Result<Box<dyn DuskCallable>, DuskError> {
+
+        match &self.callables {
+            Some(list) => {
+                if list.len() > id {
+                    return Ok(list[id].clone());
+                }
+                return Err(IndexError(
+                        format!(
+                            "Callable with index {} does not exist",
+                            id,
+                        )));
+            },
+            None => {
+                self.callables = Some(self.freight.get_callable_list()?);
+                self.get_callable_by_id(id)
+            },
+        }
+    }
+
+    fn get_function_list (
+        self: &mut Self,
+    ) -> Result<Vec<Function>, DuskError> {
+
+        match &self.functions {
+            Some(list) => return Ok(list.clone()),
+            None => {
+                self.functions = Some(self.freight.get_function_list()?);
+                return Ok(self.functions.as_ref().unwrap().clone());
+            },
+        }
+    }
+
+    fn get_function_by_id (
+        self: &mut Self,
+        id: usize,
+    ) -> Result<Function, DuskError> {
+
+        match &self.functions {
+            Some(list) => {
+                if list.len() > id {
+                    return Ok(list[id].clone());
+                }
+                return Err(IndexError(
+                        format!(
+                            "Function with index {} does not exist",
+                            id,
+                        )));
+            },
+            None => {
+                self.functions = Some(self.freight.get_function_list()?);
+                self.get_function_by_id(id)
+            },
+        }
+    }
+
+    fn get_type_list (
+        self: &mut Self,
+    ) -> Result<Vec<Type>, DuskError> {
+
+        match &self.types {
+            Some(list) => return Ok(list.clone()),
+            None => {
+                self.types = Some(self.freight.get_type_list()?);
+                return Ok(self.types.as_ref().unwrap().clone());
+            },
+        }
+    }
+
+    fn get_type_by_id (
+        self: &mut Self,
+        id: usize,
+    ) -> Result<Type, DuskError> {
+
+        match &self.types {
+            Some(list) => {
+                if list.len() > id {
+                    return Ok(list[id].clone());
+                }
+                return Err(IndexError(
+                        format!(
+                            "Type with index {} does not exist",
+                            id,
+                        )));
+            },
+            None => {
+                self.types = Some(self.freight.get_type_list()?);
+                self.get_type_by_id(id)
+            },
+        }
+    }
+
+    fn get_trait_definition_list (
+        self: &mut Self,
+    ) -> Result<Vec<TraitDefinition>, DuskError> {
+
+        match &self.trait_definitions {
+            Some(list) => return Ok(list.clone()),
+            None => {
+                self.trait_definitions = Some(self.freight.get_trait_definition_list()?);
+                return Ok(self.trait_definitions.as_ref().unwrap().clone());
+            },
+        }
+    }
+
+    fn get_trait_definition_by_id (
+        self: &mut Self,
+        id: usize,
+    ) -> Result<TraitDefinition, DuskError> {
+
+        match &self.trait_definitions {
+            Some(list) => {
+                if list.len() > id {
+                    return Ok(list[id].clone());
+                }
+                return Err(IndexError(
+                        format!(
+                            "Trait with index {} does not exist",
+                            id,
+                        )));
+            },
+            None => {
+                self.trait_definitions = Some(self.freight.get_trait_definition_list()?);
+                self.get_trait_definition_by_id(id)
+            },
+        }
+    }
+
+    fn get_module_list (
+        self: &mut Self,
+    ) -> Result<Vec<Module>, DuskError> {
+
+        match &self.modules {
+            Some(list) => return Ok(list.clone()),
+            None => {
+                self.modules = Some(self.freight.get_module_list()?);
+                return Ok(self.modules.as_ref().unwrap().clone());
+            },
+        }
+    }
+
+    fn get_module_by_id (
+        self: &mut Self,
+        id: usize,
+    ) -> Result<Module, DuskError> {
+
+        match &self.modules {
+            Some(list) => {
+                if list.len() > id {
+                    return Ok(list[id].clone());
+                }
+                return Err(IndexError(
+                        format!(
+                            "Module with index {} does not exist",
+                            id,
+                        )));
+            },
+            None => {
+                self.modules = Some(self.freight.get_module_list()?);
+                self.get_module_by_id(id)
+            },
+        }
     }
 }
 

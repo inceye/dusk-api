@@ -78,146 +78,80 @@ pub trait Freight {
     /// are defined inside those modules
     fn top_modules (self: &mut Self) -> Vec<Module>;
 
-    /// Get all modules, provided by the plugin as a vector, where
-    /// module's ID corresponds to its location in that vector.
-    /// 
-    /// The list must contain all the modules, unwrapping all nesting
-    /// and changing names to full names, containing names of modules
-    /// higher in the tree
-    fn get_module_list (
-        self: &mut Self,
-    ) -> Result<Vec<Module>, DuskError> {
-
-        let top_modules: Vec<Module> = self.top_modules();
-        let mut parents: Vec<Module>;
-        let mut par_progress: Vec<usize>;
-        let mut result: Vec<Module> = Vec::new();
-        for module in top_modules {
-            if (module.name.eq(&"".to_string())){
-                return Err(ImportError(
-                    format!(
-                        "{}",
-                        "Modules can not have empty names",
-                    )));
-            }
-            parents = Vec::new();
-            par_progress = Vec::new();
-            parents.push(module.clone());
-            par_progress.push(0);
-            while parents.len() > 0 {
-
-                let tmp_name: String = 
-                    parents.last().unwrap().name.clone();
-
-                if (*par_progress.last().unwrap() < 
-                    parents.last().unwrap().submodules.len()) 
-                {
-
-                    parents.push(parents.last().unwrap().submodules[
-                        *par_progress.last().unwrap()].clone());
-
-                    if (parents.last().unwrap().name.eq(
-                            &"".to_string(),
-                    )) {
-
-                        return Err(ImportError(
-                            format!(
-                                "{}",
-                                "Modules can not have empty names",
-                            )));
-                    }
-
-                    parents.last_mut().unwrap().name = format!(
-                        "{}::{}", 
-                        tmp_name, 
-                        parents.last().unwrap().name);
-
-                    *par_progress.last_mut().unwrap() += 1;
-                    par_progress.push(0);
-                    continue;
-                }
-
-                par_progress.pop();
-                if parents.last().unwrap().md_id < result.len() {
-                    if (result[parents.last().unwrap().md_id].name.ne(
-                            &"".to_string(),
-                    )) {
-
-                        return Err(ImportError(
-                            format!(
-                                "Several modules with same id ({}) found",
-                                parents.last().unwrap().md_id,
-                            )));
-                    }
-                    result[parents.last().unwrap().md_id] = 
-                        parents.last().unwrap().clone();
-
-                    continue;
-                }
-                for _i in result.len()..parents.last().unwrap().md_id {
-                    result.push(Default::default());
-                }
-                result.push(parents.pop().unwrap());
-            }
-        }
-        return Ok(result);
+    /// The function that is used to provide the functions that
+    /// implement all the binary operators this plugin provides
+    fn get_operator_list (self: &mut Self) -> Vec<Function> {
+        Vec::new()
     }
 
-    /// Get module by its ID
-    fn get_module_by_id (
+    /// Get the list of callables, extracted from the function list
+    /// in ID order
+    fn get_callable_list (
+        self: &mut Self,
+    ) -> Result<Vec<Box<dyn DuskCallable>>, DuskError> {
+
+        match self.get_function_list() {
+            Ok(list) => {
+                let mut result: Vec<Box<dyn DuskCallable>> = 
+                    Vec::new();
+                for function in list {
+                    result.push(function.callable.clone());
+                }
+                return Ok(result); 
+            },
+            Err(err) => return Err(err),
+        }
+    }
+
+    /// Get callable by the ID of the function it is located in
+    fn get_callable_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Module, DuskError> {
+    ) -> Result<Box<dyn DuskCallable>, DuskError> {
 
-        match self.get_module_list() {
+        match self.get_function_list() {
             Ok(list) => {
                 if (list.len() <= id) {
                     return Err(IndexError(
                             format!(
-                                "Module with index {} does not exist",
+                                "Callable with index {} does not exist",
                                 id,
                             )));
                 }
                 if (list[id].name.eq(&"".to_string())) {
                     return Err(IndexError(
                             format!(
-                                "Module with index {} does not exist",
+                                "Callable with index {} does not exist",
                                 id,
                             )));
                 }
-                return Ok(list[id].clone());
+                return Ok(list[id].callable.clone());
             },
             Err(err) => return Err(err),
         }
     }
 
-    /// Get module by its full name
-    fn get_module_by_name (
+    /// Get callable by the name of the function it is located in
+    fn get_callable_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Module, DuskError> {
-
-        match self.get_module_list() {
+    ) -> Result<Box<dyn DuskCallable>, DuskError> {
+        
+        match self.get_function_list() {
             Ok(list) => {
-                for module in list {
-                    if (module.name.eq(name)) {
-                        return Ok(module.clone());
+                for function in list {
+                    if (function.name.eq(name)) {
+                        return Ok(function.callable.clone());
                     }
                 }
                 return Err(IndexError(
                         format!(
-                            "Could not find module with name {} in list",
+                            "Could not find type with name {} in list",
                             name,
                         )));
             },
             Err(err) => return Err(err),
         }
-    }
-
-    /// The function that is used to provide the functions that
-    /// implement all the binary operators this plugin provides
-    fn get_operator_list (self: &mut Self) -> Vec<Function> {
-        Vec::new()
     }
 
     /// The function has to provide a vector of **ALL** functions
@@ -246,6 +180,16 @@ pub trait Freight {
 
         let mut result: Vec<Function> = Vec::new();
         let mut result_unsorted: Vec<Function> = Vec::new();
+        for def_fun in self.get_operator_list() {
+            if (def_fun.name.eq(&"".to_string())) {
+                return Err(ImportError(
+                        format!(
+                            "{}",
+                            "Operators can not have empty names",
+                        )));
+            }
+            result_unsorted.push(def_fun.clone());
+        }
         for module in all_modules {
             for def_fun in module.functions {
                 if (def_fun.name.eq(&"".to_string())) {
@@ -536,76 +480,6 @@ pub trait Freight {
         }
     }
 
-    /// Get the list of callables, extracted from the function list
-    /// in ID order
-    fn get_callable_list (
-        self: &mut Self,
-    ) -> Result<Vec<Box<dyn DuskCallable>>, DuskError> {
-
-        match self.get_function_list() {
-            Ok(list) => {
-                let mut result: Vec<Box<dyn DuskCallable>> = 
-                    Vec::new();
-                for function in list {
-                    result.push(function.callable.clone());
-                }
-                return Ok(result); 
-            },
-            Err(err) => return Err(err),
-        }
-    }
-
-    /// Get callable by the ID of the function it is located in
-    fn get_callable_by_id (
-        self: &mut Self,
-        id: usize,
-    ) -> Result<Box<dyn DuskCallable>, DuskError> {
-
-        match self.get_function_list() {
-            Ok(list) => {
-                if (list.len() <= id) {
-                    return Err(IndexError(
-                            format!(
-                                "Callable with index {} does not exist",
-                                id,
-                            )));
-                }
-                if (list[id].name.eq(&"".to_string())) {
-                    return Err(IndexError(
-                            format!(
-                                "Callable with index {} does not exist",
-                                id,
-                            )));
-                }
-                return Ok(list[id].callable.clone());
-            },
-            Err(err) => return Err(err),
-        }
-    }
-
-    /// Get callable by the name of the function it is located in
-    fn get_callable_by_name (
-        self: &mut Self,
-        name: &String,
-    ) -> Result<Box<dyn DuskCallable>, DuskError> {
-        
-        match self.get_function_list() {
-            Ok(list) => {
-                for function in list {
-                    if (function.name.eq(name)) {
-                        return Ok(function.callable.clone());
-                    }
-                }
-                return Err(IndexError(
-                        format!(
-                            "Could not find type with name {} in list",
-                            name,
-                        )));
-            },
-            Err(err) => return Err(err),
-        }
-    }
-
     /// Get a vector of all trait definitions provided by the plugin, 
     /// composed in such way that the type's ID corresponds to its
     /// position in this vector. Also change the name to the full name,
@@ -699,6 +573,142 @@ pub trait Freight {
                 return Err(IndexError(
                         format!(
                             "Could not find trait with name {} in list",
+                            name,
+                        )));
+            },
+            Err(err) => return Err(err),
+        }
+    }
+
+    /// Get all modules, provided by the plugin as a vector, where
+    /// module's ID corresponds to its location in that vector.
+    /// 
+    /// The list must contain all the modules, unwrapping all nesting
+    /// and changing names to full names, containing names of modules
+    /// higher in the tree
+    fn get_module_list (
+        self: &mut Self,
+    ) -> Result<Vec<Module>, DuskError> {
+
+        let top_modules: Vec<Module> = self.top_modules();
+        let mut parents: Vec<Module>;
+        let mut par_progress: Vec<usize>;
+        let mut result: Vec<Module> = Vec::new();
+        for module in top_modules {
+            if (module.name.eq(&"".to_string())){
+                return Err(ImportError(
+                    format!(
+                        "{}",
+                        "Modules can not have empty names",
+                    )));
+            }
+            parents = Vec::new();
+            par_progress = Vec::new();
+            parents.push(module.clone());
+            par_progress.push(0);
+            while parents.len() > 0 {
+
+                let tmp_name: String = 
+                    parents.last().unwrap().name.clone();
+
+                if (*par_progress.last().unwrap() < 
+                    parents.last().unwrap().submodules.len()) 
+                {
+
+                    parents.push(parents.last().unwrap().submodules[
+                        *par_progress.last().unwrap()].clone());
+
+                    if (parents.last().unwrap().name.eq(
+                            &"".to_string(),
+                    )) {
+
+                        return Err(ImportError(
+                            format!(
+                                "{}",
+                                "Modules can not have empty names",
+                            )));
+                    }
+
+                    parents.last_mut().unwrap().name = format!(
+                        "{}::{}", 
+                        tmp_name, 
+                        parents.last().unwrap().name);
+
+                    *par_progress.last_mut().unwrap() += 1;
+                    par_progress.push(0);
+                    continue;
+                }
+
+                par_progress.pop();
+                if parents.last().unwrap().md_id < result.len() {
+                    if (result[parents.last().unwrap().md_id].name.ne(
+                            &"".to_string(),
+                    )) {
+
+                        return Err(ImportError(
+                            format!(
+                                "Several modules with same id ({}) found",
+                                parents.last().unwrap().md_id,
+                            )));
+                    }
+                    result[parents.last().unwrap().md_id] = 
+                        parents.last().unwrap().clone();
+
+                    continue;
+                }
+                for _i in result.len()..parents.last().unwrap().md_id {
+                    result.push(Default::default());
+                }
+                result.push(parents.pop().unwrap());
+            }
+        }
+        return Ok(result);
+    }
+
+    /// Get module by its ID
+    fn get_module_by_id (
+        self: &mut Self,
+        id: usize,
+    ) -> Result<Module, DuskError> {
+
+        match self.get_module_list() {
+            Ok(list) => {
+                if (list.len() <= id) {
+                    return Err(IndexError(
+                            format!(
+                                "Module with index {} does not exist",
+                                id,
+                            )));
+                }
+                if (list[id].name.eq(&"".to_string())) {
+                    return Err(IndexError(
+                            format!(
+                                "Module with index {} does not exist",
+                                id,
+                            )));
+                }
+                return Ok(list[id].clone());
+            },
+            Err(err) => return Err(err),
+        }
+    }
+
+    /// Get module by its full name
+    fn get_module_by_name (
+        self: &mut Self,
+        name: &String,
+    ) -> Result<Module, DuskError> {
+
+        match self.get_module_list() {
+            Ok(list) => {
+                for module in list {
+                    if (module.name.eq(name)) {
+                        return Ok(module.clone());
+                    }
+                }
+                return Err(IndexError(
+                        format!(
+                            "Could not find module with name {} in list",
                             name,
                         )));
             },
