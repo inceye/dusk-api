@@ -98,7 +98,7 @@ pub struct FreightProxy {
 
     types_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
 
-    types_by_native_id: Option<std::collections::HashMap<TypeId, Vec<usize>>>,
+    types_by_native_id: Option<std::collections::HashMap<TypeId, usize>>,
 
     trait_definitions_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
 
@@ -174,6 +174,73 @@ impl FreightProxy {
 
         // Return the result
         Ok(result)
+    }
+}
+
+macro_rules! remember_or_create {
+    ($self: ident, $memory: ident, $get_list: ident) => {
+
+        match &$self.$memory {
+            Some(list) => return Ok(list.clone()),
+            None => {
+                $self.$memory = Some($self.freight.$get_list()?);
+                return Ok($self.$memory.as_ref().unwrap().clone());
+            },
+        }
+    }
+}
+
+macro_rules! find_by_id {
+    ($name: expr, $id: expr, $self: ident, $memory: ident, $get_list: ident, $self_fn: ident) => {
+
+        return match &$self.$memory {
+            Some(list) => {
+                if list.len() > $id {
+                    if (!list[$id].name.eq(&"".to_string())) {
+                        return Ok(list[$id].clone());
+                    }
+                }
+                return Err(IndexError(
+                        format!(
+                            "{} with index {} does not exist",
+                            $name,
+                            $id,
+                        )));
+            },
+            None => {
+                $self.$memory = Some($self.freight.$get_list()?);
+                $self.$self_fn($id)
+            },
+        }
+    }
+}
+
+macro_rules! find_by_name {
+    ($type: ident, $id: expr, $self: ident, $memory: ident, 
+     $get_list: ident, $get_by_id: ident, $self_fn: ident) => {
+
+        return match &mut $self.$memory {
+            Some(hash_map) => {
+                let mut res: Vec<$type> = Vec::new();
+                for id in hash_map.entry($id.clone()).or_default().clone() {
+                    res.push($self.$get_by_id(id)?);
+                }
+                return Ok(res);
+            },
+            None => {
+                let mut hash_map: std::collections::HashMap<String, Vec<usize>> = 
+                    std::collections::HashMap::new();
+                let mut idx: usize = 0;
+                for item in $self.$get_list()? {
+                    hash_map.entry(item.name)
+                        .or_default()
+                        .push(idx);
+                    idx += 1;
+                }
+                $self.$memory = Some(hash_map);
+                $self.$self_fn(&$id)
+            }
+        }
     }
 }
 
@@ -253,35 +320,15 @@ impl Freight for FreightProxy {
         id: usize,
     ) -> Result<Box<dyn DuskCallable>, DuskError> {
 
-        match &self.callables {
-            Some(list) => {
-                if list.len() > id {
-                    return Ok(list[id].clone());
-                }
-                return Err(IndexError(
-                        format!(
-                            "Callable with index {} does not exist",
-                            id,
-                        )));
-            },
-            None => {
-                self.callables = Some(self.freight.get_callable_list()?);
-                self.get_callable_by_id(id)
-            },
-        }
+        let function: Function = self.get_function_by_id(id)?;
+        return Ok(function.callable);
     }
 
     fn get_function_list (
         self: &mut Self,
     ) -> Result<Vec<Function>, DuskError> {
 
-        match &self.functions {
-            Some(list) => return Ok(list.clone()),
-            None => {
-                self.functions = Some(self.freight.get_function_list()?);
-                return Ok(self.functions.as_ref().unwrap().clone());
-            },
-        }
+        remember_or_create!(self, functions, get_function_list);
     }
 
     fn get_function_by_id (
@@ -289,35 +336,23 @@ impl Freight for FreightProxy {
         id: usize,
     ) -> Result<Function, DuskError> {
 
-        match &self.functions {
-            Some(list) => {
-                if list.len() > id {
-                    return Ok(list[id].clone());
-                }
-                return Err(IndexError(
-                        format!(
-                            "Function with index {} does not exist",
-                            id,
-                        )));
-            },
-            None => {
-                self.functions = Some(self.freight.get_function_list()?);
-                self.get_function_by_id(id)
-            },
-        }
+        find_by_id!("Function", id, self, functions, get_function_list, get_function_by_id);
+    }
+
+    fn get_functions_by_name (
+        self: &mut Self,
+        name: &String,
+    ) -> Result<Vec<Function>, DuskError> {
+
+        find_by_name!(Function, name, self, functions_by_name, get_function_list, 
+            get_function_by_id, get_functions_by_name)
     }
 
     fn get_type_list (
         self: &mut Self,
     ) -> Result<Vec<Type>, DuskError> {
 
-        match &self.types {
-            Some(list) => return Ok(list.clone()),
-            None => {
-                self.types = Some(self.freight.get_type_list()?);
-                return Ok(self.types.as_ref().unwrap().clone());
-            },
-        }
+        remember_or_create!(self, types, get_type_list);
     }
 
     fn get_type_by_id (
@@ -325,35 +360,58 @@ impl Freight for FreightProxy {
         id: usize,
     ) -> Result<Type, DuskError> {
 
-        match &self.types {
-            Some(list) => {
-                if list.len() > id {
-                    return Ok(list[id].clone());
-                }
-                return Err(IndexError(
+        find_by_id!("Type", id, self, types, get_type_list, get_type_by_id);
+    }
+
+    fn get_type_by_native_id (
+        self: &mut Self,
+        native_id: TypeId,
+    ) -> Result<Type, DuskError> {
+
+        match &self.types_by_native_id {
+            Some(hash_map) => {
+                match hash_map.get(&native_id) {
+                    Some(id) => {
+                        let id_clone = id.clone();
+                        self.get_type_by_id(id_clone)
+                    },
+                    None => Err(IndexError(
                         format!(
-                            "Type with index {} does not exist",
-                            id,
-                        )));
+                            "Could not find type with native id {:#?} in list",
+                            native_id,
+                        ))),
+                }
+
             },
             None => {
-                self.types = Some(self.freight.get_type_list()?);
-                self.get_type_by_id(id)
-            },
+                let mut hash_map: std::collections::HashMap<TypeId, usize> = 
+                    std::collections::HashMap::new();
+                let mut idx: usize = 0;
+                for item in self.get_type_list()? {
+                    hash_map.insert(item.native_id.clone(), idx);
+                    idx += 1;
+                }
+                self.types_by_native_id = Some(hash_map);
+                self.get_type_by_native_id(native_id)
+            }
         }
+
+    }
+
+    fn get_types_by_name (
+        self: &mut Self,
+        name: &String,
+    ) -> Result<Vec<Type>, DuskError> {
+
+        find_by_name!(Type, name, self, types_by_name, get_type_list, 
+            get_type_by_id, get_types_by_name)
     }
 
     fn get_trait_definition_list (
         self: &mut Self,
     ) -> Result<Vec<TraitDefinition>, DuskError> {
 
-        match &self.trait_definitions {
-            Some(list) => return Ok(list.clone()),
-            None => {
-                self.trait_definitions = Some(self.freight.get_trait_definition_list()?);
-                return Ok(self.trait_definitions.as_ref().unwrap().clone());
-            },
-        }
+        remember_or_create!(self, trait_definitions, get_trait_definition_list);
     }
 
     fn get_trait_definition_by_id (
@@ -361,35 +419,25 @@ impl Freight for FreightProxy {
         id: usize,
     ) -> Result<TraitDefinition, DuskError> {
 
-        match &self.trait_definitions {
-            Some(list) => {
-                if list.len() > id {
-                    return Ok(list[id].clone());
-                }
-                return Err(IndexError(
-                        format!(
-                            "Trait with index {} does not exist",
-                            id,
-                        )));
-            },
-            None => {
-                self.trait_definitions = Some(self.freight.get_trait_definition_list()?);
-                self.get_trait_definition_by_id(id)
-            },
-        }
+        find_by_id!("Trait", id, self, trait_definitions, 
+            get_trait_definition_list, get_trait_definition_by_id);
+    }
+
+    fn get_trait_definitions_by_name (
+        self: &mut Self,
+        name: &String,
+    ) -> Result<Vec<TraitDefinition>, DuskError> {
+
+        find_by_name!(TraitDefinition, name, self, trait_definitions_by_name, 
+            get_trait_definition_list, get_trait_definition_by_id, 
+            get_trait_definitions_by_name)
     }
 
     fn get_module_list (
         self: &mut Self,
     ) -> Result<Vec<Module>, DuskError> {
 
-        match &self.modules {
-            Some(list) => return Ok(list.clone()),
-            None => {
-                self.modules = Some(self.freight.get_module_list()?);
-                return Ok(self.modules.as_ref().unwrap().clone());
-            },
-        }
+        remember_or_create!(self, modules, get_module_list);
     }
 
     fn get_module_by_id (
@@ -397,22 +445,16 @@ impl Freight for FreightProxy {
         id: usize,
     ) -> Result<Module, DuskError> {
 
-        match &self.modules {
-            Some(list) => {
-                if list.len() > id {
-                    return Ok(list[id].clone());
-                }
-                return Err(IndexError(
-                        format!(
-                            "Module with index {} does not exist",
-                            id,
-                        )));
-            },
-            None => {
-                self.modules = Some(self.freight.get_module_list()?);
-                self.get_module_by_id(id)
-            },
-        }
+        find_by_id!("Module", id, self, modules, get_module_list, get_module_by_id);
+    }
+
+    fn get_modules_by_name (
+        self: &mut Self,
+        name: &String,
+    ) -> Result<Vec<Module>, DuskError> {
+
+        find_by_name!(Module, name, self, modules_by_name, get_module_list, 
+            get_module_by_id, get_modules_by_name)
     }
 }
 

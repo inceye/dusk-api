@@ -131,29 +131,6 @@ pub trait Freight {
         }
     }
 
-    /// Get callable by the name of the function it is located in
-    fn get_callable_by_name (
-        self: &mut Self,
-        name: &String,
-    ) -> Result<Box<dyn DuskCallable>, DuskError> {
-        
-        match self.get_function_list() {
-            Ok(list) => {
-                for function in list {
-                    if (function.name.eq(name)) {
-                        return Ok(function.callable.clone());
-                    }
-                }
-                return Err(IndexError(
-                        format!(
-                            "Could not find type with name {} in list",
-                            name,
-                        )));
-            },
-            Err(err) => return Err(err),
-        }
-    }
-
     /// The function has to provide a vector of **ALL** functions
     /// that this plugin holds **PLACED IN SUCH WAY THAT ID IS
     /// EQUAL TO THE POSITION IN THE VECTOR** 
@@ -329,23 +306,20 @@ pub trait Freight {
     }
 
     /// Get function by its name
-    fn get_function_by_name (
+    fn get_functions_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Function, DuskError> {
+    ) -> Result<Vec<Function>, DuskError> {
 
+        let mut res: Vec<Function> = Vec::new();
         match self.get_function_list() {
             Ok(list) => {
                 for function in list {
                     if (function.name.eq(name)) {
-                        return Ok(function.clone());
+                        res.push(function.clone());
                     }
                 }
-                return Err(IndexError(
-                        format!(
-                            "Could not find function with name {} in list",
-                            name,
-                        )));
+                return Ok(res);
             },
             Err(err) => return Err(err),
         }
@@ -435,23 +409,20 @@ pub trait Freight {
     }
 
     /// Get type by its name
-    fn get_type_by_name (
+    fn get_types_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Type, DuskError> {
+    ) -> Result<Vec<Type>, DuskError> {
 
+        let mut res: Vec<Type> = Vec::new();
         match self.get_type_list() {
             Ok(list) => {
                 for one_type in list {
                     if (one_type.name.eq(name)) {
-                        return Ok(one_type.clone());
+                        res.push(one_type.clone());
                     }
                 }
-                return Err(IndexError(
-                        format!(
-                            "Could not find type with name {} in list",
-                            name,
-                        )));
+                return Ok(res);
             },
             Err(err) => return Err(err),
         }
@@ -558,23 +529,20 @@ pub trait Freight {
     }
 
     /// Get trait definition by its name
-    fn get_trait_definition_by_name (
+    fn get_trait_definitions_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<TraitDefinition, DuskError> {
+    ) -> Result<Vec<TraitDefinition>, DuskError> {
         
+        let mut res: Vec<TraitDefinition> = Vec::new();
         match self.get_trait_definition_list() {
             Ok(list) => {
                 for trait_definition in list {
                     if (trait_definition.name.eq(name)) {
-                        return Ok(trait_definition.clone());
+                        res.push(trait_definition.clone());
                     }
                 }
-                return Err(IndexError(
-                        format!(
-                            "Could not find trait with name {} in list",
-                            name,
-                        )));
+                return Ok(res);
             },
             Err(err) => return Err(err),
         }
@@ -694,23 +662,20 @@ pub trait Freight {
     }
 
     /// Get module by its full name
-    fn get_module_by_name (
+    fn get_modules_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Module, DuskError> {
+    ) -> Result<Vec<Module>, DuskError> {
 
+        let mut res: Vec<Module> = Vec::new();
         match self.get_module_list() {
             Ok(list) => {
                 for module in list {
                     if (module.name.eq(name)) {
-                        return Ok(module.clone());
+                        res.push(module.clone());
                     }
                 }
-                return Err(IndexError(
-                        format!(
-                            "Could not find module with name {} in list",
-                            name,
-                        )));
+                return Ok(res);
             },
             Err(err) => return Err(err),
         }
