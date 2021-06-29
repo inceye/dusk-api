@@ -22,6 +22,13 @@
 use crate::*;
 pub use InterplugRequest::*;
 
+/// TODO: define rules of plugin identification:
+///
+/// Plugin name string is uniquely identifying it in it's database,
+/// when requesting a plugin, first search in it's own database, then
+/// in the other default user configured databases, and then in all
+/// the known ones, going from the oldest to the newest
+
 /// Enum, that represents an interplugin request and either contains
 /// a [`InterplugRequest::RequestCrucial`] plugin request (must be provided
 /// in order for the plugin to work or an
@@ -74,8 +81,8 @@ pub enum InterplugRequest {
         /// trait definition
         plugin: String,
 
-        /// Trait name
-        trait_name: String,
+        /// Trait identifier
+        trait_id: usize,
 
         /// In trait function IDs of the functions that need 
         /// their dependencies fulfilled
@@ -109,8 +116,8 @@ pub enum InterplugRequest {
         /// trait definition
         plugin: String,
 
-        /// Trait name
-        trait_name: String,
+        /// Trait identifier
+        trait_id: usize,
 
         /// The version of the plugin containing the trait 
         /// definition
@@ -200,50 +207,3 @@ pub enum Limitation {
         setting: String,
     },
 }
-
-/// A trait, implementors of which may be passed as arguments
-pub trait DuskObject : Any + DuskObjClone {}
-
-impl std::fmt::Debug for dyn DuskObject {
-    fn fmt (
-        self: &Self, 
-        f: &mut std::fmt::Formatter<'_>,
-    ) -> std::fmt::Result {
-
-        f.pad("DuskObject")
-    }
-}
-
-/// The trait, containing a function that clones the existing
-/// DuskObject implementor
-pub trait DuskObjClone {
-
-    /// The function that returns a new box, of [`DuskCallable`]
-    /// implementor
-    fn dusk_object_clone_box (
-        self: &Self,
-    ) -> Box<dyn DuskObject>;
-}
-
-impl <T> DuskObjClone for T
-where
-    T: 'static + DuskObject + Clone
-{
-    fn dusk_object_clone_box (
-        self: &Self,
-    ) -> Box<dyn DuskObject> {
-
-        Box::new(self.clone())
-    }
-}
-
-impl Clone for Box<dyn DuskObject> {
-    fn clone (self: &Self) -> Box<dyn DuskObject> {
-        self.dusk_object_clone_box()
-    }
-}
-
-impl <T> DuskObject for T 
-where 
-    T: 'static + Any + Clone
-{}

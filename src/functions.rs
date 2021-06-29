@@ -38,9 +38,21 @@ pub struct Parameter {
     /// Default: false
     pub any_type: bool,
 
-    /// If any type is set to true, check if the type
-    /// has some traits implemented
-    pub implements: Option<Vec<InterplugRequest>>,
+    /// If the argument should be just a response to the Interplug request
+    /// by itself without any value bound to it, set trait_only to true
+    ///
+    /// All trait_only parameters *MUST* be placed in the beginning of 
+    /// the parameter list
+    pub trait_only: bool,
+
+    /// If any type is set to true, check if the type has some traits 
+    /// implemented
+    ///
+    /// If implements is set to Some, and trait_only is set to false, 
+    ///
+    /// Implements can be a RequestEach, so it might be requesting that
+    /// the type implements multiple traits with a single InterplugRequest
+    pub implements: Option<InterplugRequest>,
 
     /// Allow to change the value of the argument
     ///
@@ -97,6 +109,7 @@ impl Default for Parameter {
         Parameter {
             arg_type: TypeId::of::<u8>(),
             any_type: false,
+            trait_only: false,
             implements: None,
             mutable: false,
             keyword_only: false,
@@ -119,6 +132,9 @@ pub struct Kwarg<'a> {
     /// The actual argument value
     pub value: &'a mut Box<dyn DuskObject>,
 }
+
+//pub struct TraitArg<'a> {
+//}
 
 /// Structure representing main characteristics of a function needed
 /// for the program using a plugin, which implements it

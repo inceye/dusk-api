@@ -35,7 +35,7 @@
 
 #![warn(unreachable_pub)]
 #![warn(unused_crate_dependencies)]
-#![warn(unused_extern_crates)] 
+//#![warn(unused_extern_crates)] 
 #![warn(missing_copy_implementations)] 
 #![warn(missing_debug_implementations)] 
 #![warn(variant_size_differences)] 
@@ -61,6 +61,9 @@
 #![warn(single_use_lifetimes)]
 #![warn(unaligned_references)]
 
+extern crate dusk_api_macros;
+pub use dusk_api_macros::*;
+
 use std::any::{Any, TypeId};
 
 pub mod changelog;
@@ -72,6 +75,7 @@ pub mod declaration;
 pub mod registration;
 pub mod interplugin;
 
+pub mod objects;
 pub mod callables;
 pub mod functions;
 pub mod types;
@@ -86,6 +90,7 @@ pub use declaration::*;
 pub use registration::*;
 pub use interplugin::*;
 
+pub use objects::*;
 pub use callables::*;
 pub use functions::*;
 pub use types::*;

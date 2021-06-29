@@ -480,18 +480,18 @@ pub trait Freight {
                     "{}::{}",
                     module.name,
                     def_trt.name);
-                if def_trt.td_id < result.len() {
+                if def_trt.trait_id < result.len() {
                     if (!def_trt.name.eq(&"".to_string())) {
                         return Err(ImportError(
                                 format!(
                                     "Several traits with same id ({}) found",
-                                    def_trt.td_id,
+                                    def_trt.trait_id,
                                 )));
                     }
-                    result[def_trt.td_id] = def_trt.clone();
+                    result[def_trt.trait_id] = def_trt.clone();
                     continue;
                 }
-                for _i in result.len()..def_trt.td_id {
+                for _i in result.len()..def_trt.trait_id {
                     result.push(Default::default());
                 }
                 result.push(def_trt.clone());

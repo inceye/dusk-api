@@ -130,7 +130,7 @@ pub struct TraitDefinition {
     pub name: String,
 
     /// Trait definition ID
-    pub td_id: usize,
+    pub trait_id: usize,
 
     /// The method definitions
     pub methods: Vec<TraitFunctionDefinition>,
@@ -140,7 +140,7 @@ impl Default for TraitDefinition {
     fn default () -> TraitDefinition {
         TraitDefinition {
             name: "".to_string(),
-            td_id: 0,
+            trait_id: 0,
             methods: Vec::new(),
         }
     }
@@ -152,9 +152,14 @@ impl Default for TraitDefinition {
 #[derive(Clone, Debug)]
 pub struct TraitImplementation {
 
-    /// Trait name (containing full path to it in the plugin
-    /// where it came from)
-    pub name: String,
+    /// The plugin that defines the trait
+    pub plugin: String,
+
+    /// Trait identifier in that plugin
+    pub trait_id: usize,
+
+    /// Version of the plugin, that defines the trait
+    pub version: Version,
 
     /// Methods being implemented
     pub methods: Vec<TraitFunction>,
@@ -164,11 +169,21 @@ pub struct TraitImplementation {
 #[derive(Clone, Debug)]
 pub struct TraitProxy {
 
-    /// The name of the trait
-    pub trait_name: String,
+    /// The plugin that defines the trait
+    pub plugin: String,
 
-    /// The plugin where it came from
+    /// Trait identifier in that plugin
+    pub trait_id: usize,
+
+    /// Version of the plugin, that defines the trait
+    pub version: Version,
+
+    /// The plugin where the implementation lies
     pub freight_proxy: std::rc::Rc<FreightProxy>,
+
+    /// ID of the type, that implemented the trait (Not native ID, just 
+    /// the standard id)
+    pub tp_id: usize,
 
     /// The vector, linking IDs of the Trait functions to the actual
     /// general plugin function IDs

@@ -18,6 +18,18 @@
 //! Module, containing everything needed to export a callable
 
 use crate::*;
+use std::sync::Arc;
+use std::sync::Mutex;
+
+//#[macro_export]
+//macro_rules! register_callable_scheme {
+//}
+//
+//// TODO: macro that takes arguments as Arc<Mutex<Box<dyn Any>>> and 
+//// calls the underlying function
+//#[macro_export]
+//macro_rules! call_clone_unwrap {
+//}
 
 /// A trait that defines the behavior of a function wrapper, used
 /// to call functions imported from plugins
@@ -29,7 +41,7 @@ pub trait DuskCallable: CallableClone {
     fn call (
         self: &mut Self,
         args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Box<dyn DuskObject>, DuskError>;
+    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError>;
 }
 
 impl std::fmt::Debug for dyn DuskCallable {
@@ -78,14 +90,14 @@ impl Clone for Box<dyn DuskCallable> {
 pub struct SimpleCallable {
     underlying_fn: 
         fn (&Vec<&mut Box<dyn DuskObject>>) 
-            -> Result<Box<dyn DuskObject>, DuskError>,
+            -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError>,
 }
 
 impl DuskCallable for SimpleCallable {
     fn call (
         self: &mut Self,
         args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Box<dyn DuskObject>, DuskError> {
+    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError> {
 
         (self.underlying_fn)(args)
     }
@@ -112,14 +124,14 @@ pub struct ConstArgsCallable {
         fn (
             &Vec<Box<dyn DuskObject>>, 
             &Vec<&mut Box<dyn DuskObject>>,
-        ) -> Result<Box<dyn DuskObject>, DuskError>,
+        ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError>,
 }
 
 impl DuskCallable for ConstArgsCallable {
     fn call (
         self: &mut Self,
         args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Box<dyn DuskObject>, DuskError> {
+    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError> {
 
         (self.underlying_fn)(&self.const_args.clone(), args)
     }
@@ -146,7 +158,7 @@ impl DuskCallable for EmptyCallable {
     fn call (
         self: &mut Self,
         _args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Box<dyn DuskObject>, DuskError> {
+    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError> {
 
         Err(DuskError::NotImplementedError (
                 "Called function is not implemented".to_string()
