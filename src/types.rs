@@ -34,6 +34,7 @@ use crate::*;
 #[derive(Clone, Debug)]
 pub struct Type {
 
+    // TODO: getter, setter, locker and unlocker methods
     /// Name for the [`TypeId`] owner to be reffered to as a static
     /// string
     pub name: String,

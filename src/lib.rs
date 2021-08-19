@@ -42,10 +42,10 @@
 #![warn(keyword_idents)]
 #![warn(anonymous_parameters)]
 
-#![warn(missing_abi)]
+//#![warn(missing_abi)]
 
 #![warn(meta_variable_misuse)]
-#![warn(semicolon_in_expressions_from_macros)]
+//#![warn(semicolon_in_expressions_from_macros)]
 #![warn(absolute_paths_not_starting_with_crate)]
 
 #![warn(missing_crate_level_docs)]

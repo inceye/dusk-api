@@ -18,8 +18,6 @@
 //! Module, containing everything needed to export a callable
 
 use crate::*;
-use std::sync::Arc;
-use std::sync::Mutex;
 
 //#[macro_export]
 //macro_rules! register_callable_scheme {
@@ -40,8 +38,8 @@ pub trait DuskCallable: CallableClone {
     /// the underlying function, returning it's result
     fn call (
         self: &mut Self,
-        args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError>;
+        args: Vec<Object>
+    ) -> Result<Object, Error>;
 }
 
 impl std::fmt::Debug for dyn DuskCallable {
@@ -89,15 +87,15 @@ impl Clone for Box<dyn DuskCallable> {
 #[derive(Copy, Clone)]
 pub struct SimpleCallable {
     underlying_fn: 
-        fn (&Vec<&mut Box<dyn DuskObject>>) 
-            -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError>,
+        fn (Vec<Object>) 
+            -> Result<Object, Error>,
 }
 
 impl DuskCallable for SimpleCallable {
     fn call (
         self: &mut Self,
-        args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError> {
+        args: Vec<Object>
+    ) -> Result<Object, Error> {
 
         (self.underlying_fn)(args)
     }
@@ -119,21 +117,21 @@ impl std::fmt::Debug for SimpleCallable {
 /// as well as the arguments provided to the call function
 #[derive(Clone)]
 pub struct ConstArgsCallable {
-    const_args: Vec<Box<dyn DuskObject>>,
+    const_args: Vec<Object>,
     underlying_fn: 
         fn (
-            &Vec<Box<dyn DuskObject>>, 
-            &Vec<&mut Box<dyn DuskObject>>,
-        ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError>,
+            Vec<Object>, 
+            Vec<Object>,
+        ) -> Result<Object, Error>,
 }
 
 impl DuskCallable for ConstArgsCallable {
     fn call (
         self: &mut Self,
-        args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError> {
+        args: Vec<Object>
+    ) -> Result<Object, Error> {
 
-        (self.underlying_fn)(&self.const_args.clone(), args)
+        (self.underlying_fn)(self.const_args.clone(), args)
     }
 }
 
@@ -150,17 +148,17 @@ impl std::fmt::Debug for ConstArgsCallable {
 }
 
 /// A default callable: does not call anything, always returns
-/// [`DuskError::NotImplementedError`]
+/// [`Error::NotImplementedError`]
 #[derive(Copy, Clone, Debug)]
 pub struct EmptyCallable;
 
 impl DuskCallable for EmptyCallable {
     fn call (
         self: &mut Self,
-        _args: &Vec<&mut Box<dyn DuskObject>>
-    ) -> Result<Arc<Mutex<Box<dyn DuskObject>>>, DuskError> {
+        _args: Vec<Object>
+    ) -> Result<Object, Error> {
 
-        Err(DuskError::NotImplementedError (
+        Err(Error::NotImplementedError (
                 "Called function is not implemented".to_string()
         ))
     }

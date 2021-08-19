@@ -74,7 +74,7 @@ pub struct Parameter {
     /// it's default value to Some
     ///
     /// Default value is [`None`]
-    pub default_value: Option<Box<dyn DuskObject>>,
+    pub default_value: Option<Object>,
 
     /// If you want the user to be able to pass multiple arguments
     /// with one keyword or just multiple positon arguments, you
@@ -124,13 +124,13 @@ impl Default for Parameter {
 /// The struct that represents a keyword argument if it is passed
 /// to the function with no_check_args set to true
 #[derive(Debug)]
-pub struct Kwarg<'a> {
+pub struct Kwarg {
 
     /// The keyword
     pub keyword: String,
 
     /// The actual argument value
-    pub value: &'a mut Box<dyn DuskObject>,
+    pub value: Object,
 }
 
 //pub struct TraitArg<'a> {

@@ -18,7 +18,7 @@
 //! Module, containing everything needed for error handling 
 
 use crate::*;
-pub use DuskError::*;
+pub use Error::*;
 
 /// Enum, that represents a message passed to the program using the
 /// plugin when the function fails.
@@ -26,7 +26,7 @@ pub use DuskError::*;
 /// Interplugin communication is meant to be panic safe, so that 
 /// the program does not just completely fail just because one plugin
 /// failed. Instead if the plugin fails to perform any action, instead
-/// of the normal return value, it should return [`DuskError`], so 
+/// of the normal return value, it should return [`Error`], so 
 /// that it could be parsed by the program, and considered when making
 /// the decision to either try and fix the problem by providing 
 /// dependencies, trying another plugin, or notifying user in the most
@@ -38,7 +38,7 @@ pub use DuskError::*;
 /// fn add (
 ///     a: u8, 
 ///     b: u8,
-/// ) -> Result<u8, dusk_api::DuskError> {
+/// ) -> Result<u8, dusk_api::Error> {
 ///     
 ///     if ((255 - b) < a) {
 ///         return Err(dusk_api::OverflowError(
@@ -52,7 +52,7 @@ pub use DuskError::*;
 ///
 /// fn add_many (
 ///     lst: Vec<u8>,
-/// ) -> Result<u8, dusk_api::DuskError> {
+/// ) -> Result<u8, dusk_api::Error> {
 ///
 ///     let mut res: u8 = 0;
 ///     for elm in lst {
@@ -68,7 +68,7 @@ pub use DuskError::*;
 /// assert!(!add_many(vec![100, 200, 30]).is_ok());
 /// ```
 #[derive(Debug)]
-pub enum DuskError {
+pub enum Error {
 
     /// Plugin library loading failed
     LoadingError (libloading::Error),

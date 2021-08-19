@@ -88,7 +88,7 @@ pub trait Freight {
     /// in ID order
     fn get_callable_list (
         self: &mut Self,
-    ) -> Result<Vec<Box<dyn DuskCallable>>, DuskError> {
+    ) -> Result<Vec<Box<dyn DuskCallable>>, Error> {
 
         match self.get_function_list() {
             Ok(list) => {
@@ -107,7 +107,7 @@ pub trait Freight {
     fn get_callable_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Box<dyn DuskCallable>, DuskError> {
+    ) -> Result<Box<dyn DuskCallable>, Error> {
 
         match self.get_function_list() {
             Ok(list) => {
@@ -146,7 +146,7 @@ pub trait Freight {
     ///
     fn get_function_list (
         self: &mut Self,
-    ) -> Result<Vec<Function>, DuskError> {
+    ) -> Result<Vec<Function>, Error> {
 
         let all_modules: Vec<Module>;
 
@@ -281,7 +281,7 @@ pub trait Freight {
     fn get_function_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Function, DuskError> {
+    ) -> Result<Function, Error> {
 
         match self.get_function_list() {
             Ok(list) => {
@@ -309,7 +309,7 @@ pub trait Freight {
     fn get_functions_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<Function>, DuskError> {
+    ) -> Result<Vec<Function>, Error> {
 
         let mut res: Vec<Function> = Vec::new();
         match self.get_function_list() {
@@ -337,7 +337,7 @@ pub trait Freight {
     ///
     fn get_type_list (
         self: &mut Self,
-    ) -> Result<Vec<Type>, DuskError> {
+    ) -> Result<Vec<Type>, Error> {
 
         let all_modules: Vec<Module>;
 
@@ -384,7 +384,7 @@ pub trait Freight {
     fn get_type_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Type, DuskError> {
+    ) -> Result<Type, Error> {
 
         match self.get_type_list() {
             Ok(list) => {
@@ -412,7 +412,7 @@ pub trait Freight {
     fn get_types_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<Type>, DuskError> {
+    ) -> Result<Vec<Type>, Error> {
 
         let mut res: Vec<Type> = Vec::new();
         match self.get_type_list() {
@@ -432,7 +432,7 @@ pub trait Freight {
     fn get_type_by_native_id (
         self: &mut Self,
         native_id: TypeId,
-    ) -> Result<Type, DuskError> {
+    ) -> Result<Type, Error> {
 
         match self.get_type_list() {
             Ok(list) => {
@@ -457,7 +457,7 @@ pub trait Freight {
     /// containing the name of the module it is located in.
     fn get_trait_definition_list (
         self: &mut Self,
-    ) -> Result<Vec<TraitDefinition>, DuskError> {
+    ) -> Result<Vec<TraitDefinition>, Error> {
 
         let all_modules: Vec<Module>;
 
@@ -504,7 +504,7 @@ pub trait Freight {
     fn get_trait_definition_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<TraitDefinition, DuskError> {
+    ) -> Result<TraitDefinition, Error> {
 
         match self.get_trait_definition_list() {
             Ok(list) => {
@@ -532,7 +532,7 @@ pub trait Freight {
     fn get_trait_definitions_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<TraitDefinition>, DuskError> {
+    ) -> Result<Vec<TraitDefinition>, Error> {
         
         let mut res: Vec<TraitDefinition> = Vec::new();
         match self.get_trait_definition_list() {
@@ -556,7 +556,7 @@ pub trait Freight {
     /// higher in the tree
     fn get_module_list (
         self: &mut Self,
-    ) -> Result<Vec<Module>, DuskError> {
+    ) -> Result<Vec<Module>, Error> {
 
         let top_modules: Vec<Module> = self.top_modules();
         let mut parents: Vec<Module>;
@@ -637,7 +637,7 @@ pub trait Freight {
     fn get_module_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Module, DuskError> {
+    ) -> Result<Module, Error> {
 
         match self.get_module_list() {
             Ok(list) => {
@@ -665,7 +665,7 @@ pub trait Freight {
     fn get_modules_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<Module>, DuskError> {
+    ) -> Result<Vec<Module>, Error> {
 
         let mut res: Vec<Module> = Vec::new();
         match self.get_module_list() {

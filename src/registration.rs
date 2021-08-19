@@ -114,7 +114,7 @@ impl FreightProxy {
     /// library path
     pub unsafe fn load (
         lib_path: &str,
-    ) -> Result<FreightProxy, DuskError> {
+    ) -> Result<FreightProxy, Error> {
 
         // Import the library
         let lib : std::rc::Rc<libloading::Library>;
@@ -299,7 +299,7 @@ impl Freight for FreightProxy {
 
     fn get_callable_list (
         self: &mut Self,
-    ) -> Result<Vec<Box<dyn DuskCallable>>, DuskError> {
+    ) -> Result<Vec<Box<dyn DuskCallable>>, Error> {
 
         match &self.callables {
             Some(list) => return Ok(list.clone()),
@@ -318,7 +318,7 @@ impl Freight for FreightProxy {
     fn get_callable_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Box<dyn DuskCallable>, DuskError> {
+    ) -> Result<Box<dyn DuskCallable>, Error> {
 
         let function: Function = self.get_function_by_id(id)?;
         return Ok(function.callable);
@@ -326,7 +326,7 @@ impl Freight for FreightProxy {
 
     fn get_function_list (
         self: &mut Self,
-    ) -> Result<Vec<Function>, DuskError> {
+    ) -> Result<Vec<Function>, Error> {
 
         remember_or_create!(self, functions, get_function_list);
     }
@@ -334,7 +334,7 @@ impl Freight for FreightProxy {
     fn get_function_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Function, DuskError> {
+    ) -> Result<Function, Error> {
 
         find_by_id!("Function", id, self, functions, get_function_list, get_function_by_id);
     }
@@ -342,7 +342,7 @@ impl Freight for FreightProxy {
     fn get_functions_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<Function>, DuskError> {
+    ) -> Result<Vec<Function>, Error> {
 
         find_by_name!(Function, name, self, functions_by_name, get_function_list, 
             get_function_by_id, get_functions_by_name)
@@ -350,7 +350,7 @@ impl Freight for FreightProxy {
 
     fn get_type_list (
         self: &mut Self,
-    ) -> Result<Vec<Type>, DuskError> {
+    ) -> Result<Vec<Type>, Error> {
 
         remember_or_create!(self, types, get_type_list);
     }
@@ -358,7 +358,7 @@ impl Freight for FreightProxy {
     fn get_type_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Type, DuskError> {
+    ) -> Result<Type, Error> {
 
         find_by_id!("Type", id, self, types, get_type_list, get_type_by_id);
     }
@@ -366,7 +366,7 @@ impl Freight for FreightProxy {
     fn get_type_by_native_id (
         self: &mut Self,
         native_id: TypeId,
-    ) -> Result<Type, DuskError> {
+    ) -> Result<Type, Error> {
 
         match &self.types_by_native_id {
             Some(hash_map) => {
@@ -401,7 +401,7 @@ impl Freight for FreightProxy {
     fn get_types_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<Type>, DuskError> {
+    ) -> Result<Vec<Type>, Error> {
 
         find_by_name!(Type, name, self, types_by_name, get_type_list, 
             get_type_by_id, get_types_by_name)
@@ -409,7 +409,7 @@ impl Freight for FreightProxy {
 
     fn get_trait_definition_list (
         self: &mut Self,
-    ) -> Result<Vec<TraitDefinition>, DuskError> {
+    ) -> Result<Vec<TraitDefinition>, Error> {
 
         remember_or_create!(self, trait_definitions, get_trait_definition_list);
     }
@@ -417,7 +417,7 @@ impl Freight for FreightProxy {
     fn get_trait_definition_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<TraitDefinition, DuskError> {
+    ) -> Result<TraitDefinition, Error> {
 
         find_by_id!("Trait", id, self, trait_definitions, 
             get_trait_definition_list, get_trait_definition_by_id);
@@ -426,7 +426,7 @@ impl Freight for FreightProxy {
     fn get_trait_definitions_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<TraitDefinition>, DuskError> {
+    ) -> Result<Vec<TraitDefinition>, Error> {
 
         find_by_name!(TraitDefinition, name, self, trait_definitions_by_name, 
             get_trait_definition_list, get_trait_definition_by_id, 
@@ -435,7 +435,7 @@ impl Freight for FreightProxy {
 
     fn get_module_list (
         self: &mut Self,
-    ) -> Result<Vec<Module>, DuskError> {
+    ) -> Result<Vec<Module>, Error> {
 
         remember_or_create!(self, modules, get_module_list);
     }
@@ -443,7 +443,7 @@ impl Freight for FreightProxy {
     fn get_module_by_id (
         self: &mut Self,
         id: usize,
-    ) -> Result<Module, DuskError> {
+    ) -> Result<Module, Error> {
 
         find_by_id!("Module", id, self, modules, get_module_list, get_module_by_id);
     }
@@ -451,7 +451,7 @@ impl Freight for FreightProxy {
     fn get_modules_by_name (
         self: &mut Self,
         name: &String,
-    ) -> Result<Vec<Module>, DuskError> {
+    ) -> Result<Vec<Module>, Error> {
 
         find_by_name!(Module, name, self, modules_by_name, get_module_list, 
             get_module_by_id, get_modules_by_name)
