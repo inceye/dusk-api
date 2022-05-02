@@ -20,7 +20,7 @@
 
 use crate::*;
 
-/// Structure that holds all the characteristics of a trait 
+/// Structure that holds all the characteristics of a trait
 /// function that need to be known when actually implementing
 /// it or importing its implementor.
 ///
@@ -28,10 +28,10 @@ use crate::*;
 /// * function name
 /// * its trait id number that identifies it's place in the trait
 /// implementation function Vector
-/// * vector of parameter descriptions of the parameters 
+/// * vector of parameter descriptions of the parameters
 /// ([`Parameter`])
 /// * its return [`TypeId`]
-/// * whether or not the arguments should be checked or just passed 
+/// * whether or not the arguments should be checked or just passed
 /// as is
 #[derive(Clone, Debug)]
 pub struct TraitFunctionDefinition {
@@ -41,19 +41,19 @@ pub struct TraitFunctionDefinition {
     /// want to use
     pub name: String,
 
-    /// Function ID, used to find this function in the trait 
+    /// Function ID, used to find this function in the trait
     /// implementation function vector
     ///
     /// **Should always be the same for same functions in the newer
     /// releases, unless a new plugin version is submitted**
     pub fn_trait_id: u64,
 
-    /// A vector of function parameter definitions, as objects 
+    /// A vector of function parameter definitions, as objects
     /// of type [`Parameter`]
     ///
-    /// This field contains all information, compiler needs to 
+    /// This field contains all information, compiler needs to
     /// know about argument amount, types and keywords in case
-    /// 
+    ///
     pub parameters: Vec<Parameter>,
 
     /// The [`TypeId`] of the returned [`Any`] trait implementor
@@ -70,11 +70,11 @@ pub struct TraitFunctionDefinition {
     /// In this case, the keywords will not be checked, so all
     /// keyword arguments will be provided as objects of type
     /// [`Kwarg`]
-    /// 
+    ///
     /// If the function might take different arguments in different
     /// situations, or even have unlimited amount of arguments,
     /// sometimes it is easier to make one function that would
-    /// parse the arguments and decide how to deal with them. For 
+    /// parse the arguments and decide how to deal with them. For
     /// such function, compiler will not check the argument types
     /// nor amount of them.
     pub no_check_args: bool,
@@ -181,7 +181,7 @@ pub struct TraitProxy {
     /// The plugin where the implementation lies
     pub freight_proxy: std::rc::Rc<FreightProxy>,
 
-    /// ID of the type, that implemented the trait (Not native ID, just 
+    /// ID of the type, that implemented the trait (Not native ID, just
     /// the standard id)
     pub tp_id: usize,
 

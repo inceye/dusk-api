@@ -43,7 +43,7 @@ pub trait Freight {
     /// plugins, it should request them as a Vector of
     /// [`InterplugRequest`]
     fn init (
-        self: &mut Self, 
+        self: &mut Self,
         _limitations: &Option<Vec<Limitation>>,
     ) -> Vec<InterplugRequest> {
 
@@ -52,7 +52,7 @@ pub trait Freight {
 
     /// Function that updates system limitations
     fn update_limitations (
-        self: &mut Self, 
+        self: &mut Self,
         _limitations: &Vec<Limitation>,
     ) {
         ()
@@ -73,7 +73,7 @@ pub trait Freight {
         _request: InterplugRequest,
     ) {}
 
-    /// The function that is used to provide the main module / 
+    /// The function that is used to provide the main module /
     /// modules of the plugin. Any function, constant or type
     /// are defined inside those modules
     fn top_modules (self: &mut Self) -> Vec<Module>;
@@ -92,12 +92,12 @@ pub trait Freight {
 
         match self.get_function_list() {
             Ok(list) => {
-                let mut result: Vec<Box<dyn DuskCallable>> = 
+                let mut result: Vec<Box<dyn DuskCallable>> =
                     Vec::new();
                 for function in list {
                     result.push(function.callable.clone());
                 }
-                return Ok(result); 
+                return Ok(result);
             },
             Err(err) => return Err(err),
         }
@@ -133,15 +133,15 @@ pub trait Freight {
 
     /// The function has to provide a vector of **ALL** functions
     /// that this plugin holds **PLACED IN SUCH WAY THAT ID IS
-    /// EQUAL TO THE POSITION IN THE VECTOR** 
+    /// EQUAL TO THE POSITION IN THE VECTOR**
     ///
-    /// **DO NOT REIMPLEMENT IT UNLESS YOU KNOW WHAT YOU ARE 
+    /// **DO NOT REIMPLEMENT IT UNLESS YOU KNOW WHAT YOU ARE
     /// DOING**
     ///
     /// This vector should contain **ALL** functions from **ALL**
     /// modules **AND ALL OF THEIR SUBMODULES**, including **ALL
-    /// OF THE TYPE METHODS AND FIELD FUNCTIONS**, 
-    /// **ALL FUNCTIONS USED FOR CONSTANTS** and including 
+    /// OF THE TYPE METHODS AND FIELD FUNCTIONS**,
+    /// **ALL FUNCTIONS USED FOR CONSTANTS** and including
     /// **ALL OF THE BINARY OPERATOR FUNCTIONS**
     ///
     fn get_function_list (
@@ -263,7 +263,7 @@ pub trait Freight {
                                 def_met.fn_id,
                             )));
                 }
-                result[def_met.fn_id] = 
+                result[def_met.fn_id] =
                     def_met.clone();
 
                 continue;
@@ -327,9 +327,9 @@ pub trait Freight {
 
     /// The function has to provide a vector of **ALL** types
     /// that this plugin holds **PLACED IN SUCH WAY THAT ID IS
-    /// EQUAL TO THE POSITION IN THE VECTOR** 
+    /// EQUAL TO THE POSITION IN THE VECTOR**
     ///
-    /// **DO NOT REIMPLEMENT IT UNLESS YOU KNOW WHAT YOU ARE 
+    /// **DO NOT REIMPLEMENT IT UNLESS YOU KNOW WHAT YOU ARE
     /// DOING**
     ///
     /// This vector should contain **ALL** types from **ALL**
@@ -451,7 +451,7 @@ pub trait Freight {
         }
     }
 
-    /// Get a vector of all trait definitions provided by the plugin, 
+    /// Get a vector of all trait definitions provided by the plugin,
     /// composed in such way that the type's ID corresponds to its
     /// position in this vector. Also change the name to the full name,
     /// containing the name of the module it is located in.
@@ -533,7 +533,7 @@ pub trait Freight {
         self: &mut Self,
         name: &String,
     ) -> Result<Vec<TraitDefinition>, Error> {
-        
+
         let mut res: Vec<TraitDefinition> = Vec::new();
         match self.get_trait_definition_list() {
             Ok(list) => {
@@ -550,7 +550,7 @@ pub trait Freight {
 
     /// Get all modules, provided by the plugin as a vector, where
     /// module's ID corresponds to its location in that vector.
-    /// 
+    ///
     /// The list must contain all the modules, unwrapping all nesting
     /// and changing names to full names, containing names of modules
     /// higher in the tree
@@ -576,11 +576,11 @@ pub trait Freight {
             par_progress.push(0);
             while parents.len() > 0 {
 
-                let tmp_name: String = 
+                let tmp_name: String =
                     parents.last().unwrap().name.clone();
 
-                if (*par_progress.last().unwrap() < 
-                    parents.last().unwrap().submodules.len()) 
+                if (*par_progress.last().unwrap() <
+                    parents.last().unwrap().submodules.len())
                 {
 
                     parents.push(parents.last().unwrap().submodules[
@@ -598,8 +598,8 @@ pub trait Freight {
                     }
 
                     parents.last_mut().unwrap().name = format!(
-                        "{}::{}", 
-                        tmp_name, 
+                        "{}::{}",
+                        tmp_name,
                         parents.last().unwrap().name);
 
                     *par_progress.last_mut().unwrap() += 1;
@@ -619,7 +619,7 @@ pub trait Freight {
                                 parents.last().unwrap().md_id,
                             )));
                     }
-                    result[parents.last().unwrap().md_id] = 
+                    result[parents.last().unwrap().md_id] =
                         parents.last().unwrap().clone();
 
                     continue;
@@ -684,7 +684,7 @@ pub trait Freight {
 
 impl std::fmt::Debug for dyn Freight {
     fn fmt (
-        self: &Self, 
+        self: &Self,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
 

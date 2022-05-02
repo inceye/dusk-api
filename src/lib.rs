@@ -35,10 +35,10 @@
 
 #![warn(unreachable_pub)]
 #![warn(unused_crate_dependencies)]
-//#![warn(unused_extern_crates)] 
-#![warn(missing_copy_implementations)] 
-#![warn(missing_debug_implementations)] 
-#![warn(variant_size_differences)] 
+//#![warn(unused_extern_crates)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(variant_size_differences)]
 #![warn(keyword_idents)]
 #![warn(anonymous_parameters)]
 

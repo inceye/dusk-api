@@ -23,7 +23,7 @@ use crate::*;
 //macro_rules! register_callable_scheme {
 //}
 //
-//// TODO: macro that takes arguments as Arc<Mutex<Box<dyn Any>>> and 
+//// TODO: macro that takes arguments as Arc<Mutex<Box<dyn Any>>> and
 //// calls the underlying function
 //#[macro_export]
 //macro_rules! call_clone_unwrap {
@@ -44,7 +44,7 @@ pub trait DuskCallable: CallableClone {
 
 impl std::fmt::Debug for dyn DuskCallable {
     fn fmt (
-        self: &Self, 
+        self: &Self,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
 
@@ -86,8 +86,8 @@ impl Clone for Box<dyn DuskCallable> {
 /// the arguments and returned Result
 #[derive(Copy, Clone)]
 pub struct SimpleCallable {
-    underlying_fn: 
-        fn (Vec<Object>) 
+    underlying_fn:
+        fn (Vec<Object>)
             -> Result<Object, Error>,
 }
 
@@ -103,7 +103,7 @@ impl DuskCallable for SimpleCallable {
 
 impl std::fmt::Debug for SimpleCallable {
     fn fmt (
-        self: &Self, 
+        self: &Self,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
 
@@ -118,9 +118,9 @@ impl std::fmt::Debug for SimpleCallable {
 #[derive(Clone)]
 pub struct ConstArgsCallable {
     const_args: Vec<Object>,
-    underlying_fn: 
+    underlying_fn:
         fn (
-            Vec<Object>, 
+            Vec<Object>,
             Vec<Object>,
         ) -> Result<Object, Error>,
 }
@@ -137,7 +137,7 @@ impl DuskCallable for ConstArgsCallable {
 
 impl std::fmt::Debug for ConstArgsCallable {
     fn fmt (
-        self: &Self, 
+        self: &Self,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
 

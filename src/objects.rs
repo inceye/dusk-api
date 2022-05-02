@@ -606,7 +606,7 @@ impl Clone for Object {
         // FIXME: in case incref returns error, return a none object
         inner.dk_incref().unwrap();
 
-        Object { 
+        Object {
             data: self.data,
             data_type: self.data_type,
             phantom: std::marker::PhantomData,

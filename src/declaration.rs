@@ -46,7 +46,7 @@ pub struct FreightDeclaration {
     /// Version of the freight being imported
     pub freight_version: Version,
 
-    /// The earliest plugin version, for which the code could have 
+    /// The earliest plugin version, for which the code could have
     /// been designed, and still be run with this version
     /// of plugin, with same results
     pub backwards_compat_version: Version,
@@ -63,7 +63,7 @@ pub struct FreightDeclaration {
 
 impl std::fmt::Debug for FreightDeclaration {
     fn fmt (
-        self: &Self, 
+        self: &Self,
         f: &mut std::fmt::Formatter<'_>,
     ) -> std::fmt::Result {
 
@@ -71,7 +71,7 @@ impl std::fmt::Debug for FreightDeclaration {
             .field("rustc_version", &self.rustc_version)
             .field("api_version", &self.api_version)
             .field("freight_version", &self.freight_version)
-            .field("backwards_compat_version", 
+            .field("backwards_compat_version",
                 &self.backwards_compat_version)
             .field("name", &self.name)
             .finish()
@@ -80,8 +80,8 @@ impl std::fmt::Debug for FreightDeclaration {
 
 /// A macro, which **MUST** be used for exporting a struct.
 ///
-/// Every export must be done using this macro, or it's 
-/// wrapper [`export_plugin`] to make sure the plugin is 
+/// Every export must be done using this macro, or it's
+/// wrapper [`export_plugin`] to make sure the plugin is
 /// compatible with the program using it
 ///
 /// To learn more about structure, required to register the
@@ -95,7 +95,7 @@ impl std::fmt::Debug for FreightDeclaration {
 /// ``` rust, ignore
 /// dusk_api::export_freight!(
 ///     "test",
-///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     Version {major: 1, minor: 23, ..Default::default() },
 ///     register);
 ///
 /// pub fn register (registrar: &mut dyn FreightRegistrar) {
@@ -110,7 +110,7 @@ impl std::fmt::Debug for FreightDeclaration {
 /// ```
 ///
 /// If you want to also specify the backwards compatibility
-/// version, you should use the same macro with four 
+/// version, you should use the same macro with four
 /// arguments, inserting backwards compatibility version
 /// right after the plugin version
 ///
@@ -118,8 +118,8 @@ impl std::fmt::Debug for FreightDeclaration {
 /// ``` rust, ignore
 /// dusk_api::export_freight!(
 ///     "test",
-///     Version {major: 1, minor: 23, ..Default::default() }, 
-///     Version {major: 0, minor: 6, ..Default::default() }, 
+///     Version {major: 1, minor: 23, ..Default::default() },
+///     Version {major: 0, minor: 6, ..Default::default() },
 ///     register);
 ///
 /// pub fn register (registrar: &mut dyn FreightRegistrar) {
@@ -171,8 +171,8 @@ macro_rules! export_freight {
 /// dusk_api::register_freight!(MyFreight, my_reg_fn);
 /// dusk_api::export_freight!(
 ///     "test",
-///     Version {major: 1, minor: 23, ..Default::default() }, 
-///     Version {major: 0, minor: 6, ..Default::default() }, 
+///     Version {major: 1, minor: 23, ..Default::default() },
+///     Version {major: 0, minor: 6, ..Default::default() },
 ///     my_reg_fn);
 ///
 /// pub struct MyFreight;
@@ -203,7 +203,7 @@ macro_rules! register_freight {
 /// ``` rust, ignore
 /// dusk_api::export_plugin!(
 ///     "test",
-///     Version {major: 1, minor: 23, ..Default::default() }, 
+///     Version {major: 1, minor: 23, ..Default::default() },
 ///     register);
 ///
 /// pub struct MyFreight;
@@ -220,8 +220,8 @@ macro_rules! register_freight {
 /// ``` rust, ignore
 /// dusk_api::export_plugin!(
 ///     "test",
-///     Version {major: 1, minor: 23, ..Default::default() }, 
-///     Version {major: 0, minor: 6, ..Default::default() }, 
+///     Version {major: 1, minor: 23, ..Default::default() },
+///     Version {major: 0, minor: 6, ..Default::default() },
 ///     register);
 ///
 /// pub struct MyFreight;
@@ -247,7 +247,7 @@ macro_rules! export_plugin {
 /// # Safety
 ///
 /// This macro is **UNSAFE** as it **CAN NOT** check whether
-/// the plugin has beed exported correctly or not, and 
+/// the plugin has beed exported correctly or not, and
 /// using it on a plugin that is in any way corrupted might
 /// lead to segmentation fault or undefined behavior
 ///

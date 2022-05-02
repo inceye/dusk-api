@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Dusk API.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Module, containing everything needed for error handling 
+//! Module, containing everything needed for error handling
 
 use crate::*;
 pub use Error::*;
@@ -23,12 +23,12 @@ pub use Error::*;
 /// Enum, that represents a message passed to the program using the
 /// plugin when the function fails.
 ///
-/// Interplugin communication is meant to be panic safe, so that 
+/// Interplugin communication is meant to be panic safe, so that
 /// the program does not just completely fail just because one plugin
 /// failed. Instead if the plugin fails to perform any action, instead
-/// of the normal return value, it should return [`Error`], so 
+/// of the normal return value, it should return [`Error`], so
 /// that it could be parsed by the program, and considered when making
-/// the decision to either try and fix the problem by providing 
+/// the decision to either try and fix the problem by providing
 /// dependencies, trying another plugin, or notifying user in the most
 /// comprehensible way possible of what the problem is and how it might
 /// possibly be solved.
@@ -36,10 +36,10 @@ pub use Error::*;
 /// # Example
 /// ```
 /// fn add (
-///     a: u8, 
+///     a: u8,
 ///     b: u8,
 /// ) -> Result<u8, dusk_api::Error> {
-///     
+///
 ///     if ((255 - b) < a) {
 ///         return Err(dusk_api::OverflowError(
 ///             format!(

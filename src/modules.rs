@@ -21,7 +21,7 @@
 use crate::*;
 
 /// A structure, that defines a module and may or may not contain
-/// types, functions, submodules, trait definitions and 
+/// types, functions, submodules, trait definitions and
 /// constants
 #[derive(Clone, Debug)]
 pub struct Module {
@@ -36,8 +36,8 @@ pub struct Module {
     /// A vector of types, presented in this module
     pub types: Vec<Type>,
 
-    /// A vector of functions, implemented in this module 
-    /// (not including the functions that are used to 
+    /// A vector of functions, implemented in this module
+    /// (not including the functions that are used to
     /// get type fields and constants)
     pub functions: Vec<Function>,
 

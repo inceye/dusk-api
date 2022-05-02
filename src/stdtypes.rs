@@ -173,7 +173,7 @@ impl ToDk for u8 {
         self: &Self,
     ) -> Result<Box<dyn DkAny>, Error> {
         Ok(Box::new(U8 {
-            dk_obj_core: ObjCore::new(), 
+            dk_obj_core: ObjCore::new(),
             data: *self,
         }))
     }

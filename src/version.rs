@@ -61,7 +61,7 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 /// * Release
 /// * Build
 ///
-/// e.g in 1.2.3.4, 1 is major, 2 is minor, 3 is release and 4 
+/// e.g in 1.2.3.4, 1 is major, 2 is minor, 3 is release and 4
 /// is build
 ///
 /// # Example
@@ -71,9 +71,9 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 /// let b = dusk_api::Version { minor: 1, ..Default::default() };
 /// let c = dusk_api::Version { major: 0, minor: 2, release: 1, build: 0 };
 ///
-/// assert_eq!(a.cmp(&b), std::cmp::Ordering::Greater); 
-/// assert_eq!(b.cmp(&c), std::cmp::Ordering::Less); 
-/// assert_eq!(a.cmp(&c), std::cmp::Ordering::Greater); 
+/// assert_eq!(a.cmp(&b), std::cmp::Ordering::Greater);
+/// assert_eq!(b.cmp(&c), std::cmp::Ordering::Less);
+/// assert_eq!(a.cmp(&c), std::cmp::Ordering::Greater);
 /// ```
 #[derive(Copy, Clone, Debug, Eq)]
 pub struct Version {
@@ -123,7 +123,7 @@ impl Ord for Version {
 
 impl PartialOrd for Version {
     fn partial_cmp(
-        self: &Self, 
+        self: &Self,
         other: &Self,
     ) -> Option<std::cmp::Ordering> {
 

@@ -41,14 +41,14 @@ pub struct Parameter {
     /// If the argument should be just a response to the Interplug request
     /// by itself without any value bound to it, set trait_only to true
     ///
-    /// All trait_only parameters *MUST* be placed in the beginning of 
+    /// All trait_only parameters *MUST* be placed in the beginning of
     /// the parameter list
     pub trait_only: bool,
 
-    /// If any type is set to true, check if the type has some traits 
+    /// If any type is set to true, check if the type has some traits
     /// implemented
     ///
-    /// If implements is set to Some, and trait_only is set to false, 
+    /// If implements is set to Some, and trait_only is set to false,
     ///
     /// Implements can be a RequestEach, so it might be requesting that
     /// the type implements multiple traits with a single InterplugRequest
@@ -56,17 +56,17 @@ pub struct Parameter {
 
     /// Allow to change the value of the argument
     ///
-    /// *NOTE* Can only be used with arguments with no 
+    /// *NOTE* Can only be used with arguments with no
     /// default value and allow_multiple set to false
     pub mutable: bool,
 
-    /// Forbid for this parameter to be set with a 
+    /// Forbid for this parameter to be set with a
     /// positional arg instead of keyword arg
     pub keyword_only: bool,
 
-    /// If you want to add ability to set the parameter, using a 
+    /// If you want to add ability to set the parameter, using a
     /// keyword, you might want to set the keyword to [`Some`],
-    /// 
+    ///
     /// Default value is [`None`]
     pub keyword: Option<String>,
 
@@ -87,15 +87,15 @@ pub struct Parameter {
     ///
     /// *NOTE* Only one positional parameter may be multiple.
     /// If keyword parameters are multiple or there is already a
-    /// multiple positional argument, there may be as many 
-    /// of multiple keyword parameters as you want, but the 
+    /// multiple positional argument, there may be as many
+    /// of multiple keyword parameters as you want, but the
     /// keywords will be required for all of them and can not
     /// be omitted by user.
     ///
     /// Default value is false
     pub allow_multiple: bool,
 
-    /// If the parameter allows for multiple arguments to be 
+    /// If the parameter allows for multiple arguments to be
     /// passed in it, you may set max_amount of those arguments.
     ///
     /// Set to 0 to allow unlimited arguments
@@ -141,14 +141,14 @@ pub struct Kwarg {
 ///
 /// A Function object contains
 /// * function name
-/// * a [`DuskCallable`] implementor to be used when calling the 
+/// * a [`DuskCallable`] implementor to be used when calling the
 /// function
 /// * its id number that identifies it's place in the main function
 /// Vector
-/// * vector of parameter descriptions of the parameters 
+/// * vector of parameter descriptions of the parameters
 /// ([`Parameter`])
 /// * its return [`TypeId`]
-/// * whether or not the arguments should be checked or just passed 
+/// * whether or not the arguments should be checked or just passed
 /// as is
 /// * a vector of plugin dependencies this function has
 #[derive(Clone, Debug)]
@@ -169,12 +169,12 @@ pub struct Function {
     /// releases, unless a new plugin version is submitted**
     pub fn_id: usize,
 
-    /// A vector of function parameter definitions, as objects 
+    /// A vector of function parameter definitions, as objects
     /// of type [`Parameter`]
     ///
-    /// This field contains all information, compiler needs to 
+    /// This field contains all information, compiler needs to
     /// know about argument amount, types and keywords in case
-    /// 
+    ///
     pub parameters: Vec<Parameter>,
 
     /// The [`TypeId`] of the returned [`Any`] trait implementor
@@ -191,11 +191,11 @@ pub struct Function {
     /// In this case, the keywords will not be checked, so all
     /// keyword arguments will be provided as objects of type
     /// [`Kwarg`]
-    /// 
+    ///
     /// If the function might take different arguments in different
     /// situations, or even have unlimited amount of arguments,
     /// sometimes it is easier to make one function that would
-    /// parse the arguments and decide how to deal with them. For 
+    /// parse the arguments and decide how to deal with them. For
     /// such function, compiler will not check the argument types
     /// nor amount of them.
     pub no_check_args: bool,

@@ -46,7 +46,7 @@ pub mod r0_2_0 {}
 /// as they proved to be much more convenient to work with
 ///
 /// Make function names of functions provided by autoimplemented
-/// get_function_list (and names of types, provided by 
+/// get_function_list (and names of types, provided by
 /// get_type_list) resemble actual identificators by which these
 /// functions would be called, with complete path to the function
 /// included in the name
@@ -55,7 +55,7 @@ pub mod r0_1_3 {}
 
 /// Release 0.1.2 (2021-04-09)
 ///
-/// Add Debug trait implementations for every single defined structure 
+/// Add Debug trait implementations for every single defined structure
 /// and add a rule to throw error on missing_debug_implementation
 /// lint so that all the structures created in the future will always
 /// implement Debug trait

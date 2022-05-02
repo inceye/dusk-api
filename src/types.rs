@@ -52,8 +52,8 @@ pub struct Type {
 
     /// All fields of an object of this type, user needs to be able
     /// to access, should be located here. The field name then
-    /// will be the function name, function's return type is the 
-    /// field type and the only argument of the function should 
+    /// will be the function name, function's return type is the
+    /// field type and the only argument of the function should
     /// be of the type, the field is owned by. The function
     /// IDs of these functions must be unique over all other functions
     /// in the plugin

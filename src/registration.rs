@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Dusk API.  If not, see <https://www.gnu.org/licenses/>.
 
-//! Module, containing everything needed to register and use a 
+//! Module, containing everything needed to register and use a
 //! plugin
 
 use crate::*;
@@ -77,7 +77,7 @@ pub struct FreightProxy {
     /// Imported freights name as a static string
     pub name: String,
 
-    /// Imported freights version 
+    /// Imported freights version
     pub version: Version,
 
     /// The earliest version, for which the code was designed, this
@@ -216,7 +216,7 @@ macro_rules! find_by_id {
 }
 
 macro_rules! find_by_name {
-    ($type: ident, $id: expr, $self: ident, $memory: ident, 
+    ($type: ident, $id: expr, $self: ident, $memory: ident,
      $get_list: ident, $get_by_id: ident, $self_fn: ident) => {
 
         return match &mut $self.$memory {
@@ -228,7 +228,7 @@ macro_rules! find_by_name {
                 return Ok(res);
             },
             None => {
-                let mut hash_map: std::collections::HashMap<String, Vec<usize>> = 
+                let mut hash_map: std::collections::HashMap<String, Vec<usize>> =
                     std::collections::HashMap::new();
                 let mut idx: usize = 0;
                 for item in $self.$get_list()? {
@@ -384,7 +384,7 @@ impl Freight for FreightProxy {
 
             },
             None => {
-                let mut hash_map: std::collections::HashMap<TypeId, usize> = 
+                let mut hash_map: std::collections::HashMap<TypeId, usize> =
                     std::collections::HashMap::new();
                 let mut idx: usize = 0;
                 for item in self.get_type_list()? {
@@ -403,7 +403,7 @@ impl Freight for FreightProxy {
         name: &String,
     ) -> Result<Vec<Type>, Error> {
 
-        find_by_name!(Type, name, self, types_by_name, get_type_list, 
+        find_by_name!(Type, name, self, types_by_name, get_type_list,
             get_type_by_id, get_types_by_name)
     }
 
@@ -419,7 +419,7 @@ impl Freight for FreightProxy {
         id: usize,
     ) -> Result<TraitDefinition, Error> {
 
-        find_by_id!("Trait", id, self, trait_definitions, 
+        find_by_id!("Trait", id, self, trait_definitions,
             get_trait_definition_list, get_trait_definition_by_id);
     }
 
@@ -429,7 +429,7 @@ impl Freight for FreightProxy {
     ) -> Result<Vec<TraitDefinition>, Error> {
 
         find_by_name!(TraitDefinition, name, self, trait_definitions_by_name,
-            get_trait_definition_list, get_trait_definition_by_id, 
+            get_trait_definition_list, get_trait_definition_by_id,
             get_trait_definitions_by_name)
     }
 
