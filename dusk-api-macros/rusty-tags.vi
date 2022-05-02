@@ -4,9 +4,9 @@
 !_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
 !_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
 !_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
-!_TAG_PROC_CWD	/home/andy/git/dusk-api/src/	//
+!_TAG_PROC_CWD	/home/andy/git/ceye/dusk/dusk-api/src/	//
 !_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
 !_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
 !_TAG_PROGRAM_URL	https://ctags.io/	/official site/
-!_TAG_PROGRAM_VERSION	5.9.0	/p5.9.20210110.0/
-register_callable	/home/andy/git/dusk-api/dusk-api-macros/src/lib.rs	/^pub fn register_callable ($/;"	f
+!_TAG_PROGRAM_VERSION	5.9.0	/p5.9.20210905.0/
+register_callable	/home/andy/git/ceye/dusk/dusk-api/dusk-api-macros/src/lib.rs	/^pub fn register_callable ($/;"	f

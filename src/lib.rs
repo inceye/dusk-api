@@ -83,6 +83,8 @@ pub mod traits;
 pub mod modules;
 pub mod freights;
 
+pub mod stdtypes;
+
 pub use version::*;
 pub use error::*;
 
@@ -97,3 +99,5 @@ pub use types::*;
 pub use traits::*;
 pub use modules::*;
 pub use freights::*;
+
+pub use stdtypes::*;

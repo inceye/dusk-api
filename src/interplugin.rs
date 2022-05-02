@@ -71,24 +71,24 @@ pub enum InterplugRequest {
     },
 
     /// Request for any implementor of a specific trait from
-    /// a specific plugin with a specific version, and make 
-    /// sure the functions with ids provided have all 
-    /// dependencies fulfilled (function IDs are local trait 
+    /// a specific plugin with a specific version, and make
+    /// sure the functions with ids provided have all
+    /// dependencies fulfilled (function IDs are local trait
     /// IDs -- not global IDs)
     TraitRequest {
 
-        /// String that identifies the plugin, conataining the 
+        /// String that identifies the plugin, conataining the
         /// trait definition
         plugin: String,
 
         /// Trait identifier
         trait_id: usize,
 
-        /// In trait function IDs of the functions that need 
+        /// In trait function IDs of the functions that need
         /// their dependencies fulfilled
         fn_ids: Vec<usize>,
 
-        /// The version of the plugin containing the trait 
+        /// The version of the plugin containing the trait
         /// definition
         version: Version,
     },
@@ -107,19 +107,19 @@ pub enum InterplugRequest {
     },
 
     /// Request for any implementor of a specific trait from
-    /// a specific plugin with a specific version, and make 
-    /// sure all of it's functions have their dependencies 
+    /// a specific plugin with a specific version, and make
+    /// sure all of it's functions have their dependencies
     /// fulfilled
     TraitRequestAll {
 
-        /// String that identifies the plugin, conataining the 
+        /// String that identifies the plugin, conataining the
         /// trait definition
         plugin: String,
 
         /// Trait identifier
         trait_id: usize,
 
-        /// The version of the plugin containing the trait 
+        /// The version of the plugin containing the trait
         /// definition
         version: Version,
     },
@@ -129,7 +129,7 @@ pub enum InterplugRequest {
     /// plugin to work at all
     RequestEither {
 
-        /// A vector of the requests, either of which has to 
+        /// A vector of the requests, either of which has to
         /// be fulfilled
         requests: Vec<InterplugRequest>,
     },
@@ -139,7 +139,7 @@ pub enum InterplugRequest {
     /// the plugin to work
     RequestEach {
 
-        /// A vector of the requests, all of which have to 
+        /// A vector of the requests, all of which have to
         /// be fulfilled
         requests: Vec<InterplugRequest>,
     },

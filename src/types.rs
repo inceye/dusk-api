@@ -34,7 +34,6 @@ use crate::*;
 #[derive(Clone, Debug)]
 pub struct Type {
 
-    // TODO: getter, setter, locker and unlocker methods
     /// Name for the [`TypeId`] owner to be reffered to as a static
     /// string
     pub name: String,
@@ -42,6 +41,8 @@ pub struct Type {
     /// The **INTERNAL** id for the type, representing the position
     /// of the type in the type vector, **NOT** the native [`TypeId`]**
     pub tp_id: usize,
+
+    pub generator : fn () -> Result<Box<dyn DkAny>, Error>,
 
     /// If an object of this type should have some functions, that
     /// can be called on it, they should be provided here. The function
@@ -61,6 +62,10 @@ pub struct Type {
     /// All the traits that are implemented for this type
     pub trait_implementations : Vec<TraitImplementation>,
 
+// XXX: native id is not really needed anymore, and is just a wee
+// bit confusing because we already have another ID and all objects
+// come in a structure along with the Type that describes them, so
+// we don't really need another way to check what's inside the object
     /// [`TypeId`] object, gotten from the structure, being
     /// provided to the program, that is using the plugin
     ///
@@ -72,12 +77,13 @@ pub struct Type {
 impl Default for Type {
     fn default () -> Type {
         Type {
-            name: "".to_string(),
-            tp_id: 0,
+            name: "u8".to_string(),
+            tp_id: U8_type_id,
+            generator: U8::dk_new,
             methods: Vec::new(),
             fields: Vec::new(),
             trait_implementations: Vec::new(),
-            native_id: TypeId::of::<u8>(),
+            native_id: TypeId::of::<U8>(),
         }
     }
 }

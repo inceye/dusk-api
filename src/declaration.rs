@@ -173,7 +173,7 @@ macro_rules! export_freight {
 ///     "test",
 ///     Version {major: 1, minor: 23, ..Default::default() }, 
 ///     Version {major: 0, minor: 6, ..Default::default() }, 
-///     register);
+///     my_reg_fn);
 ///
 /// pub struct MyFreight;
 ///
@@ -192,7 +192,7 @@ macro_rules! register_freight {
 }
 
 /// A macro, which can be used to make exporting of a struct
-/// easier 
+/// easier
 ///
 /// Can be used both with and without the backwards
 /// compatibility version argument (for more info see

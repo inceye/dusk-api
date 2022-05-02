@@ -83,7 +83,7 @@ pub struct FreightProxy {
     /// The earliest version, for which the code was designed, this
     /// code can safely be run with the new plugin version
     pub backwards_compat_version: Version,
-    
+
     callables: Option<Vec<Box<dyn DuskCallable>>>,
 
     functions: Option<Vec<Function>>,
@@ -251,7 +251,7 @@ impl Freight for FreightProxy {
     // Proxy function, that calls the internal freights init function
     // and returns its plugin dependencies
     fn init (
-        self: &mut Self, 
+        self: &mut Self,
         limitations: &Option<Vec<Limitation>>,
     ) -> Vec<InterplugRequest> {
 
@@ -261,7 +261,7 @@ impl Freight for FreightProxy {
     // Proxy function that takes the list of new system limitations
     // and passes it to the plugin
     fn update_limitations (
-        self: &mut Self, 
+        self: &mut Self,
         limitations: &Vec<Limitation>,
     ) {
 
@@ -344,7 +344,7 @@ impl Freight for FreightProxy {
         name: &String,
     ) -> Result<Vec<Function>, Error> {
 
-        find_by_name!(Function, name, self, functions_by_name, get_function_list, 
+        find_by_name!(Function, name, self, functions_by_name, get_function_list,
             get_function_by_id, get_functions_by_name)
     }
 
@@ -428,7 +428,7 @@ impl Freight for FreightProxy {
         name: &String,
     ) -> Result<Vec<TraitDefinition>, Error> {
 
-        find_by_name!(TraitDefinition, name, self, trait_definitions_by_name, 
+        find_by_name!(TraitDefinition, name, self, trait_definitions_by_name,
             get_trait_definition_list, get_trait_definition_by_id, 
             get_trait_definitions_by_name)
     }
@@ -453,7 +453,7 @@ impl Freight for FreightProxy {
         name: &String,
     ) -> Result<Vec<Module>, Error> {
 
-        find_by_name!(Module, name, self, modules_by_name, get_module_list, 
+        find_by_name!(Module, name, self, modules_by_name, get_module_list,
             get_module_by_id, get_modules_by_name)
     }
 }

@@ -69,6 +69,13 @@ pub struct ObjGuardMut<'a> {
 
 
 
+pub trait DkGen {
+    fn dk_new (
+        freight: Object
+        ) -> Result<Box<dyn DkAny>, Error>
+        where Self: Sized;
+}
+
 pub trait DkRefCount {
     fn dk_incref (
         self: &Self,
@@ -79,7 +86,7 @@ pub trait DkRefCount {
     ) -> Result<usize, Error>;
 }
 
-pub trait DkMutex {
+pub trait DkRWLock {
     fn dk_lock_ex (
         self: &Self,
     ) -> Result<(), Error>;
@@ -129,23 +136,35 @@ pub trait DkLoad {
 }
 
 /// A trait, implementors of which may be passed as arguments
-pub trait DkAny : Any + DkRefCount + DkMutex + DkGet + DkSet + DkDump + DkLoad
+pub trait DkAny : Any + DkGen + DkRefCount + DkRWLock + DkGet + DkSet + DkDump + DkLoad
 {
     fn to_object (
         self: &Self,
         data_type: &'static Type,
         flags: u32,
-    ) -> Object
+    ) -> Result<Object, Error>
     where Self: Sized + Clone
     {
 
-        Object::new(
+        Ok(Object::new(
             Box::new(self.clone()),
             data_type,
             flags,
-        )
+        ))
     }
 }
+
+pub trait ToDk {
+    fn to_dk (
+        self: &Self,
+    ) -> Result<Box<dyn DkAny>, Error>;
+
+    fn to_dk_object (
+        self: &Self,
+    ) -> Result<Object, Error>;
+}
+
+
 
 impl std::fmt::Debug for dyn DkAny {
     fn fmt (
@@ -159,7 +178,7 @@ impl std::fmt::Debug for dyn DkAny {
 
 impl <T> DkAny for T
 where
-    T: 'static + Any + DkRefCount + DkMutex + DkGet + DkSet + DkDump + DkLoad
+    T: 'static + Any + DkGen + DkRefCount + DkRWLock + DkGet + DkSet + DkDump + DkLoad
 {}
 
 impl Object {
@@ -295,7 +314,7 @@ impl DkRefCount for Object {
     }
 }
 
-impl DkMutex for Object {
+impl DkRWLock for Object {
     fn dk_lock_ex (
         self: &Self,
     ) -> Result<(), Error> {
