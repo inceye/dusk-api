@@ -72,7 +72,7 @@ pub struct ObjGuardMut<'a> {
 pub trait DkGen {
     fn dk_new (
         freight: Object
-        ) -> Result<Box<dyn DkAny>, Error>
+    ) -> Result<Box<dyn DkAny>, Error>
         where Self: Sized;
 }
 
@@ -143,13 +143,13 @@ pub trait DkAny : Any + DkGen + DkRefCount + DkRWLock + DkGet + DkSet + DkDump +
         data_type: &'static Type,
         flags: u32,
     ) -> Result<Object, Error>
-    where Self: Sized + Clone
+        where Self: Sized + Clone
     {
 
         Ok(Object::new(
-            Box::new(self.clone()),
-            data_type,
-            flags,
+                Box::new(self.clone()),
+                data_type,
+                flags,
         ))
     }
 }
@@ -424,12 +424,12 @@ impl ObjCore {
         let old_rc: usize = self.rc.fetch_add(
             1,
             std::sync::atomic::Ordering::Relaxed
-            );
+        );
 
         if old_rc >= isize::MAX as usize {
             return Err(OverflowError(
                     "Reference counter overflow".to_string()
-                    ));
+            ));
         }
 
         return Ok(old_rc);
@@ -442,7 +442,7 @@ impl ObjCore {
         let old_rc: usize = self.rc.fetch_sub(
             1,
             std::sync::atomic::Ordering::Release
-            );
+        );
 
         return Ok(old_rc);
     }
@@ -479,11 +479,11 @@ impl ObjCore {
         loop {
             oldlck = self.lck.load(
                 std::sync::atomic::Ordering::Acquire
-                );
+            );
             if oldlck >= isize::MAX as usize {
                 return Err(OverflowError(
                         "Lock counter overflow".to_string()
-                        ));
+                ));
             }
             if oldlck == 1 {
                 return Ok(false);
@@ -540,7 +540,7 @@ impl ObjCore {
             std::thread::sleep(std::time::Duration::new(
                     0,
                     LOCK_NANO_SLEEP
-                    ));
+            ));
         }
     }
 

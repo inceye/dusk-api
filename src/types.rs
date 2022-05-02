@@ -62,10 +62,10 @@ pub struct Type {
     /// All the traits that are implemented for this type
     pub trait_implementations : Vec<TraitImplementation>,
 
-// XXX: native id is not really needed anymore, and is just a wee
-// bit confusing because we already have another ID and all objects
-// come in a structure along with the Type that describes them, so
-// we don't really need another way to check what's inside the object
+    // XXX: native id is not really needed anymore, and is just a wee
+    // bit confusing because we already have another ID and all objects
+    // come in a structure along with the Type that describes them, so
+    // we don't really need another way to check what's inside the object
     /// [`TypeId`] object, gotten from the structure, being
     /// provided to the program, that is using the plugin
     ///

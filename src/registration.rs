@@ -376,10 +376,10 @@ impl Freight for FreightProxy {
                         self.get_type_by_id(id_clone)
                     },
                     None => Err(IndexError(
-                        format!(
-                            "Could not find type with native id {:#?} in list",
-                            native_id,
-                        ))),
+                            format!(
+                                "Could not find type with native id {:#?} in list",
+                                native_id,
+                            ))),
                 }
 
             },

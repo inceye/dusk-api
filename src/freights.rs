@@ -565,10 +565,10 @@ pub trait Freight {
         for module in top_modules {
             if (module.name.eq(&"".to_string())){
                 return Err(ImportError(
-                    format!(
-                        "{}",
-                        "Modules can not have empty names",
-                    )));
+                        format!(
+                            "{}",
+                            "Modules can not have empty names",
+                        )));
             }
             parents = Vec::new();
             par_progress = Vec::new();
@@ -591,10 +591,10 @@ pub trait Freight {
                     )) {
 
                         return Err(ImportError(
-                            format!(
-                                "{}",
-                                "Modules can not have empty names",
-                            )));
+                                format!(
+                                    "{}",
+                                    "Modules can not have empty names",
+                                )));
                     }
 
                     parents.last_mut().unwrap().name = format!(
@@ -614,10 +614,10 @@ pub trait Freight {
                     )) {
 
                         return Err(ImportError(
-                            format!(
-                                "Several modules with same id ({}) found",
-                                parents.last().unwrap().md_id,
-                            )));
+                                format!(
+                                    "Several modules with same id ({}) found",
+                                    parents.last().unwrap().md_id,
+                                )));
                     }
                     result[parents.last().unwrap().md_id] =
                         parents.last().unwrap().clone();
