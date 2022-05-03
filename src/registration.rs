@@ -68,11 +68,11 @@ pub trait FreightRegistrar {
 pub struct FreightProxy {
 
     /// Imported freight, solely for internal purposes
-    pub freight: Box<dyn Freight>,
+    freight: Box<dyn Freight>,
 
     /// Lib this freight was imported from to make sure this
     /// structure does not outlive the library it was imported from
-    pub lib: std::rc::Rc<libloading::Library>,
+    lib: Option<std::rc::Rc<libloading::Library>>,
 
     /// Imported freights name as a static string
     pub name: String,
@@ -103,7 +103,6 @@ pub struct FreightProxy {
     trait_definitions_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
 
     modules_by_name: Option<std::collections::HashMap<String, Vec<usize>>>,
-
 }
 
 /// Functions, needed to configure [`FreightProxy`] structure
@@ -132,6 +131,51 @@ impl FreightProxy {
             Err(lib_err) => return(Err(LoadingError (lib_err))),
         }
 
+        let mut result: FreightProxy =
+            FreightProxy::load_from_declaration(&declaration)?;
+        result.lib = Some(lib);
+
+        // Return the result
+        Ok(result)
+    }
+
+    /// # Warning
+    /// This is an internal function. This is reserved for
+    /// future use in dawn builder and must never be used
+    /// for any purpose other than creating the program that
+    /// would link together the final program in case of
+    /// building for systems that do not allow for runtime
+    /// dynamic library loading. In cases that do not
+    /// require static linking use the [`FreightProxy::load`]
+    /// function instead.
+    ///
+    /// # Unsafe, Use at your own risk
+    /// You may
+    /// also use this function when implementing your own
+    /// library loading method, but beware,
+    /// [`FreightProxy`] implements a way of keeping
+    /// track of the library in use so it is offloaded then
+    /// and only then when it is not being used by anything
+    /// anymore. If you implement your own library loading
+    /// method, you will have to keep track of that library
+    /// yourself so it is not offloaded when still in use
+    /// which will result in undefined behaviour, and it
+    /// is not kept in memory when there are no more
+    /// FreightProxies that are derived from it which will
+    /// result in a memory leak.
+    ///
+    /// # Use
+    /// This function is used on the importer side instead
+    /// of the regular load function when loading a
+    /// [`FreightProxy`] from a [`FreightDeclaration`] that
+    /// has either already been loaded from the runtime loaded
+    /// dynamic library or is found in the statically or
+    /// load-on-startup dynamically loaded library.
+    ///
+    pub fn load_from_declaration (
+        declaration: &FreightDeclaration,
+    ) -> Result<FreightProxy, Error> {
+
         // Check if the compiler and api versions match
         // If not -- immediately return an error
         if declaration.rustc_version != RUSTC_VERSION {
@@ -146,11 +190,25 @@ impl FreightProxy {
             ));
         }
 
+        return FreightProxy::load_from_declaration_no_vcheck(&declaration);
+    }
+
+    /// # Warning
+    /// This is an internal function, it does the same
+    /// thing as [`FreightProxy::load_from_declaration`]
+    /// but without checking neither the API version nor
+    /// the compiler version. Please check documentation for
+    /// [`FreightProxy::load_from_declaration`] before use.
+    ///
+    pub fn load_from_declaration_no_vcheck (
+        declaration: &FreightDeclaration,
+    ) -> Result<FreightProxy, Error> {
+
         // Make a new FreightProxy with all values that are
         // already available
         let mut result: FreightProxy = FreightProxy {
             freight: Box::new(EmptyFreight{}),
-            lib: lib,
+            lib: None,
             name: declaration.name,
             version: declaration.freight_version,
             backwards_compat_version: declaration.backwards_compat_version,
@@ -172,8 +230,7 @@ impl FreightProxy {
         // correct value
         (declaration.register)(&mut result);
 
-        // Return the result
-        Ok(result)
+        return Ok(result);
     }
 }
 
@@ -289,8 +346,8 @@ impl Freight for FreightProxy {
         self.freight.interplug_deny(request);
     }
 
-    fn top_modules (self: &mut Self) -> Vec<Module> {
-        self.freight.top_modules()
+    fn get_root_modules (self: &mut Self) -> Vec<Module> {
+        self.freight.get_root_modules()
     }
 
     fn get_operator_list (self: &mut Self) -> Vec<Function> {

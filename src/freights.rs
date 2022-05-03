@@ -76,7 +76,7 @@ pub trait Freight {
     /// The function that is used to provide the main module /
     /// modules of the plugin. Any function, constant or type
     /// are defined inside those modules
-    fn top_modules (self: &mut Self) -> Vec<Module>;
+    fn get_root_modules (self: &mut Self) -> Vec<Module>;
 
     /// The function that is used to provide the functions that
     /// implement all the binary operators this plugin provides
@@ -558,11 +558,11 @@ pub trait Freight {
         self: &mut Self,
     ) -> Result<Vec<Module>, Error> {
 
-        let top_modules: Vec<Module> = self.top_modules();
+        let root_modules: Vec<Module> = self.get_root_modules();
         let mut parents: Vec<Module>;
         let mut par_progress: Vec<usize>;
         let mut result: Vec<Module> = Vec::new();
-        for module in top_modules {
+        for module in root_modules {
             if (module.name.eq(&"".to_string())){
                 return Err(ImportError(
                         format!(
@@ -697,7 +697,7 @@ impl std::fmt::Debug for dyn Freight {
 #[derive(Copy, Clone, Debug)]
 pub struct EmptyFreight;
 impl Freight for EmptyFreight {
-    fn top_modules (self: &mut Self) -> Vec<Module> {
+    fn get_root_modules (self: &mut Self) -> Vec<Module> {
         Vec::new()
     }
 }
